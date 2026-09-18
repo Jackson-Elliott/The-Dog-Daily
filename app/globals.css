@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter-tight);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* Headline typeface — Fraunces (see components/StoryCard.tsx and
+   HeroStory.tsx). Loaded via next/font/google in app/layout.tsx. */
+.headline-font {
+  font-family: var(--font-headline), "Times New Roman", serif;
+  line-height: 1.2;
+}
+
+@media (min-width: 640px) {
+  .headline-font {
+    text-wrap: pretty;
+  }
+}
+
+/* Hides the scrollbar on the horizontally-scrollable category nav (see
+   components/SiteHeader.tsx) while still allowing touch/wheel scrolling. */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Keep desktop pill padding (12px) on mobile by scaling the whole nav
+   down just enough to stay on one line, instead of tightening px-3. */
+@media (max-width: 639px) {
+  .category-nav-fit {
+    zoom: min(1, calc((100vw - 1rem) / 26.5rem));
+  }
+}
+
+/* Hero "enter" transition, played whenever a new episode becomes the hero
+   (Day After/Before, or a thumbnail promoted to hero — see
+   components/NewsHomeClient.tsx). The wrapper is remounted (fresh `key`)
+   each time so this animation always replays. --hero-enter-x is set inline
+   per-instance: negative slides in from the left, positive from the right,
+   0 for no directional cue (e.g. category switch). Kept gentle (small
+   travel distance, subtle scale, long-ish duration with an eased-out curve)
+   so the swap reads as a smooth cross-fade rather than a sudden pop. */
+@keyframes hero-enter {
+  from {
+    opacity: 0;
+    transform: translateX(var(--hero-enter-x, 0px)) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.hero-enter {
+  animation: hero-enter 560ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Played on a side thumbnail the instant it's tapped, before it's promoted
+   to hero — reads as the story "launching" toward the middle of the page.
+   --story-launch-x is set inline per-instance: positive for left-column
+   cards (travelling right, toward center), negative for right-column cards
+   (travelling left, toward center). A smooth accelerate/decelerate curve and
+   a modest scale keep this from feeling like a sudden flash right before
+   the swap. See components/StoryCard.tsx. */
+@keyframes story-launch {
+  from {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.06) translateX(var(--story-launch-x, 0px));
+  }
+}
+
+.story-launch {
+  animation: story-launch 380ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Plays every time a side thumbnail is first painted — on initial page load
+   (every card) as well as later, e.g. a card that newly appears after
+   switching category or after a hero swap reshuffles the grid. Each card
+   fades/rises into place, with a base delay (plus optional per-card stagger)
+   set inline via animationDelay from components/NewsHomeClient.tsx
+   (STORY_CARD_INTRO_DELAY_MS / INTRO_CARD_STAGGER_MS) so the side thumbnails
+   visually follow the hero's own .hero-enter animation by a consistent beat.
+   Using a plain CSS animation-delay (rather than a JS setTimeout gating a
+   class swap) matters here: it's counted from the moment the browser paints
+   this element — the same baseline .hero-enter uses — rather than from
+   whenever React finishes hydrating, which made the initial page load's delay
+   feel inconsistently long depending on hydration time. */
+@keyframes story-card-intro {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.story-card-intro {
+  animation: story-card-intro 750ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-enter,
+  .story-launch,
+  .story-card-intro {
+    animation: none !important;
+  }
+}
