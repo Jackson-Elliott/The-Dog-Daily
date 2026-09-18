@@ -10,9 +10,13 @@ export default function SiteFooter() {
     <footer className="mx-auto w-full max-w-5xl px-4 pb-16">
       <div className="border-t border-black pt-3 pb-3">
         <p className="text-center text-sm font-semibold text-black">
-          Only humans do these things. And yet somehow, dogs still love us.{" "}
+          Only humans do these things.{" "}
           <br className="sm:hidden" aria-hidden="true" />
-          Adopt a little unconditional love from{" "}
+          And yet somehow, dogs still love us.{" "}
+          <br className="sm:hidden" aria-hidden="true" />
+          Adopt a little unconditional love{" "}
+          <br className="sm:hidden" aria-hidden="true" />
+          from the{" "}
           <a
             href={AWL_NSW_URL}
             target="_blank"

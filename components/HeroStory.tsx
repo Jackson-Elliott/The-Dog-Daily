@@ -110,7 +110,7 @@ export default function HeroStory({
         <p className="text-sm font-bold text-black">{formatEpisodeDate(episode.airDate)}</p>
 
         {/* BBC-style caption: sits below the photo (not overlaid on it). */}
-        <p className="headline-font mt-2 text-[3.0375rem] font-semibold leading-[1.05] text-black sm:text-2xl sm:leading-[1.1] lg:text-3xl">
+        <p className="headline-font mt-2 text-[2.12625rem] font-semibold leading-[1.05] text-black sm:text-2xl sm:leading-[1.1] lg:text-3xl">
           <TypesetHeadline text={headline} />
         </p>
         {children}
