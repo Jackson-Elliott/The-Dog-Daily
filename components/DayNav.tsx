@@ -25,7 +25,10 @@ export default function DayNav({
     <div className="mt-4 flex items-center justify-between gap-3">
       <button
         type="button"
-        onClick={onDayAfter}
+        onClick={(event) => {
+          event.stopPropagation();
+          onDayAfter();
+        }}
         disabled={disableDayAfter}
         className="flex shrink-0 items-center gap-2 rounded-full border border-black px-4 py-2 text-sm font-medium text-black transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-black"
       >
@@ -35,7 +38,10 @@ export default function DayNav({
       {children}
       <button
         type="button"
-        onClick={onDayBefore}
+        onClick={(event) => {
+          event.stopPropagation();
+          onDayBefore();
+        }}
         disabled={disableDayBefore}
         className="flex shrink-0 items-center gap-2 rounded-full border border-black px-4 py-2 text-sm font-medium text-black transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-black"
       >

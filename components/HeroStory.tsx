@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useState, type ReactNode, type RefObject } from "react";
+import { useState, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from "react";
 import type { Episode } from "@/types/episode";
 import { formatEpisodeDate, truncateHeadline } from "@/lib/format";
+import { HERO_SWIPE_GAP_PX, useHeroSwipe } from "@/lib/useHeroSwipe";
 import TypesetHeadline from "@/components/TypesetHeadline";
 
 function PlayIcon() {
@@ -23,6 +24,45 @@ function PauseIcon() {
   );
 }
 
+function HeroCaption({
+  episode,
+  children,
+  onActivate,
+}: {
+  episode: Episode;
+  children?: ReactNode;
+  onActivate?: (event: MouseEvent<HTMLDivElement>) => void;
+}) {
+  const headline = truncateHeadline(episode.headline ?? episode.scriptName, 110);
+
+  return (
+    <div className="bg-black/[0.035] px-4 py-4" onClick={onActivate}>
+      <p className="text-sm font-bold text-black">{formatEpisodeDate(episode.airDate)}</p>
+      <p className="headline-font mt-2 text-[2.12625rem] font-semibold leading-[1.05] text-black sm:text-2xl sm:leading-[1.1] lg:text-3xl">
+        <TypesetHeadline text={headline} />
+      </p>
+      {children}
+    </div>
+  );
+}
+
+/** Neighbor story shown under the current card while a mobile swipe is in flight. */
+function HeroPeek({ episode }: { episode: Episode }) {
+  return (
+    <div>
+      <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-500">
+        {episode.photoUrl ? (
+          <Image src={episode.photoUrl} alt="" fill unoptimized className="object-cover" />
+        ) : null}
+      </div>
+      <HeroCaption episode={episode}>
+        {/* Matches DayNav's row so the incoming card is the same height. */}
+        <div className="mt-4 h-10" aria-hidden="true" />
+      </HeroCaption>
+    </div>
+  );
+}
+
 /**
  * The main "story" card: the currently selected episode's photo, a play/pause
  * button, and its headline caption. Playback progress is shown via the
@@ -32,23 +72,48 @@ function PauseIcon() {
  * AnalyserNode to the exact same <audio> element and visualise the real
  * signal. Render this keyed by `episode.id` so its play state always starts
  * fresh when a different episode is chosen.
+ *
+ * On viewports below `sm`, the photo/grey box is a swipe handle: the whole
+ * card follows the finger and the neighbor story peeks in from the side.
  */
 export default function HeroStory({
   episode,
+  afterEpisode,
+  beforeEpisode,
   audioRef,
   onPlayingChange,
+  onSwipeAfter,
+  onSwipeBefore,
+  canSwipeAfter = false,
+  canSwipeBefore = false,
   children,
 }: {
   episode: Episode;
+  /** Newer story (Day After) — peeks in when swiping right. */
+  afterEpisode?: Episode | null;
+  /** Older story (Day Before) — peeks in when swiping left. */
+  beforeEpisode?: Episode | null;
   audioRef: RefObject<HTMLAudioElement | null>;
   /** Notifies the parent so it can drive the AudioWave visualiser below. */
   onPlayingChange?: (isPlaying: boolean) => void;
+  onSwipeAfter?: () => void;
+  onSwipeBefore?: () => void;
+  canSwipeAfter?: boolean;
+  canSwipeBefore?: boolean;
   /** DayNav (and AudioWave), housed in the tinted caption box under the photo. */
   children?: ReactNode;
 }) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const swipe = useHeroSwipe({
+    canSwipeAfter,
+    canSwipeBefore,
+    onSwipeAfter: onSwipeAfter ?? (() => {}),
+    onSwipeBefore: onSwipeBefore ?? (() => {}),
+  });
 
   const headline = truncateHeadline(episode.headline ?? episode.scriptName, 110);
+  const isSwiping = swipe.isMobile && swipe.phase !== "idle";
+  const settleClass = swipe.phase === "settling" ? "hero-swipe-settle" : undefined;
 
   function togglePlay() {
     const audioEl = audioRef.current;
@@ -60,60 +125,111 @@ export default function HeroStory({
     }
   }
 
+  function handleCardClick(event: MouseEvent<HTMLDivElement>) {
+    const target = event.target as HTMLElement;
+    // Nested Day After/Before (and the on-image play control) handle themselves.
+    if (target.closest("button, a")) return;
+    // A horizontal swipe on the photo still fires a trailing click — ignore
+    // that one only. Taps on the grey caption must always play.
+    if (target.closest("[data-hero-photo]") && swipe.suppressClick) return;
+    togglePlay();
+  }
+
+  const currentStyle: CSSProperties | undefined = swipe.isMobile
+    ? { transform: `translateX(${swipe.dragX}px)` }
+    : undefined;
+
   return (
-    <div>
-      <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-500">
-        <audio
-          ref={audioRef}
-          src={episode.audioUrl}
-          preload="metadata"
-          // Lets AudioWave's Web Audio AnalyserNode read real signal data even
-          // if audioUrl ends up cross-origin (e.g. Supabase Storage) instead
-          // of silently getting zeroed-out ("tainted") frequency data.
-          crossOrigin="anonymous"
-          onPlay={() => {
-            setIsPlaying(true);
-            onPlayingChange?.(true);
-          }}
-          onPause={() => {
-            setIsPlaying(false);
-            onPlayingChange?.(false);
-          }}
-          onEnded={() => {
-            setIsPlaying(false);
-            onPlayingChange?.(false);
-          }}
-        />
-
-        {episode.photoUrl ? (
-          <Image
-            src={episode.photoUrl}
-            alt={headline}
-            fill
-            unoptimized
-            priority
-            className="object-cover"
-          />
-        ) : null}
-
-        <button
-          type="button"
-          onClick={togglePlay}
-          aria-label={isPlaying ? "Pause" : "Play"}
-          className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition hover:bg-black/55 sm:h-20 sm:w-20"
+    <div ref={swipe.frameRef} className="relative overflow-hidden">
+      {swipe.isMobile && afterEpisode ? (
+        <div
+          className={`pointer-events-none absolute inset-x-0 top-0 ${settleClass ?? ""}`}
+          style={{ transform: `translateX(calc(-100% - ${HERO_SWIPE_GAP_PX}px + ${swipe.dragX}px))` }}
+          aria-hidden="true"
         >
-          {isPlaying ? <PauseIcon /> : <PlayIcon />}
-        </button>
-      </div>
+          <HeroPeek episode={afterEpisode} />
+        </div>
+      ) : null}
 
-      <div className="bg-black/[0.035] px-4 py-4">
-        <p className="text-sm font-bold text-black">{formatEpisodeDate(episode.airDate)}</p>
+      {swipe.isMobile && beforeEpisode ? (
+        <div
+          className={`pointer-events-none absolute inset-x-0 top-0 ${settleClass ?? ""}`}
+          style={{ transform: `translateX(calc(100% + ${HERO_SWIPE_GAP_PX}px + ${swipe.dragX}px))` }}
+          aria-hidden="true"
+        >
+          <HeroPeek episode={beforeEpisode} />
+        </div>
+      ) : null}
 
-        {/* BBC-style caption: sits below the photo (not overlaid on it). */}
-        <p className="headline-font mt-2 text-[2.12625rem] font-semibold leading-[1.05] text-black sm:text-2xl sm:leading-[1.1] lg:text-3xl">
-          <TypesetHeadline text={headline} />
-        </p>
-        {children}
+      <div
+        className={`group relative flex cursor-pointer flex-col gap-0 bg-white ${settleClass ?? ""} ${isSwiping ? "select-none" : ""}`}
+        style={currentStyle}
+        onClick={handleCardClick}
+        onTransitionEnd={(event) => swipe.onTrackTransitionEnd(event)}
+      >
+        <div
+          data-hero-photo=""
+          className="relative m-0 block aspect-[16/9] w-full touch-pan-y overflow-hidden bg-neutral-500 p-0 leading-none [font-size:0]"
+          {...(swipe.isMobile ? swipe.photoHandlers : {})}
+        >
+          <audio
+            ref={audioRef}
+            src={episode.audioUrl}
+            preload="metadata"
+            className="hidden"
+            // Lets AudioWave's Web Audio AnalyserNode read real signal data even
+            // if audioUrl ends up cross-origin (e.g. Supabase Storage) instead
+            // of silently getting zeroed-out ("tainted") frequency data.
+            crossOrigin="anonymous"
+            onPlay={() => {
+              setIsPlaying(true);
+              onPlayingChange?.(true);
+            }}
+            onPause={() => {
+              setIsPlaying(false);
+              onPlayingChange?.(false);
+            }}
+            onEnded={() => {
+              setIsPlaying(false);
+              onPlayingChange?.(false);
+            }}
+          />
+
+          {episode.photoUrl ? (
+            <Image
+              src={episode.photoUrl}
+              alt={headline}
+              fill
+              unoptimized
+              priority
+              draggable={false}
+              className="pointer-events-none object-cover"
+            />
+          ) : null}
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              togglePlay();
+            }}
+            aria-label={isPlaying ? "Pause" : "Play"}
+            className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition group-hover:bg-black/55 sm:h-20 sm:w-20"
+          >
+            {isPlaying ? <PauseIcon /> : <PlayIcon />}
+          </button>
+        </div>
+
+        <HeroCaption
+          episode={episode}
+          onActivate={(event) => {
+            event.stopPropagation();
+            if ((event.target as HTMLElement).closest("button, a")) return;
+            togglePlay();
+          }}
+        >
+          {children}
+        </HeroCaption>
       </div>
     </div>
   );

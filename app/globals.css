@@ -71,6 +71,12 @@ body {
   animation: hero-enter 560ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Finishes a mobile hero swipe after the finger lifts — same ease family as
+   .hero-enter, shorter so the card can travel a full width without dragging. */
+.hero-swipe-settle {
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* Played on a side thumbnail the instant it's tapped, before it's promoted
    to hero — reads as the story "launching" toward the middle of the page.
    --story-launch-x is set inline per-instance: positive for left-column
@@ -125,5 +131,9 @@ body {
   .story-launch,
   .story-card-intro {
     animation: none !important;
+  }
+
+  .hero-swipe-settle {
+    transition: none !important;
   }
 }

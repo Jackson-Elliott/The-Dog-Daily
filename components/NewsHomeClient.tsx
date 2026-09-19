@@ -39,6 +39,10 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
   // below) plays the matching .hero-enter direction. null = no directional
   // cue (e.g. switching categories).
   const [heroDirection, setHeroDirection] = useState<"left" | "right" | null>(null);
+  // Mobile swipe already slides the next story into place, so the remounted
+  // hero should not play the 28px .hero-enter used by Day After/Before pills
+  // and thumbnail launches.
+  const [skipHeroEnter, setSkipHeroEnter] = useState(false);
   // The thumbnail currently mid "launch" animation (tapped, but not yet
   // promoted to hero) — see components/StoryCard.tsx.
   const [pendingSelection, setPendingSelection] = useState<{ id: string; side: "left" | "right" } | null>(
@@ -60,6 +64,7 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
     if (launchTimeoutRef.current) clearTimeout(launchTimeoutRef.current);
     setPendingSelection(null);
     setHeroDirection(null);
+    setSkipHeroEnter(false);
     setActiveCategory(category);
     setHeroIndex(0);
     setIsPlaying(false);
@@ -102,6 +107,7 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
     launchTimeoutRef.current = setTimeout(() => {
       const index = visibleEpisodes.findIndex((episode) => episode.id === id);
       if (index !== -1) {
+        setSkipHeroEnter(false);
         setHeroDirection(side);
         setHeroIndex(index);
         setIsPlaying(false);
@@ -112,6 +118,7 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
 
   function goToDayAfter() {
     if (pendingSelection) return;
+    setSkipHeroEnter(false);
     setHeroDirection("right");
     setHeroIndex((index) => Math.max(0, index - 1));
     setIsPlaying(false);
@@ -119,7 +126,24 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
 
   function goToDayBefore() {
     if (pendingSelection) return;
+    setSkipHeroEnter(false);
     setHeroDirection("left");
+    setHeroIndex((index) => Math.min(visibleEpisodes.length - 1, index + 1));
+    setIsPlaying(false);
+  }
+
+  function swipeToDayAfter() {
+    if (pendingSelection) return;
+    setSkipHeroEnter(true);
+    setHeroDirection(null);
+    setHeroIndex((index) => Math.max(0, index - 1));
+    setIsPlaying(false);
+  }
+
+  function swipeToDayBefore() {
+    if (pendingSelection) return;
+    setSkipHeroEnter(true);
+    setHeroDirection(null);
     setHeroIndex((index) => Math.min(visibleEpisodes.length - 1, index + 1));
     setIsPlaying(false);
   }
@@ -163,9 +187,19 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
                     heroDirection === "left" ? "-28px" : heroDirection === "right" ? "28px" : "0px",
                 } as CSSProperties
               }
-              className="hero-enter"
+              className={skipHeroEnter ? undefined : "hero-enter"}
             >
-              <HeroStory episode={hero} audioRef={audioRef} onPlayingChange={setIsPlaying}>
+              <HeroStory
+                episode={hero}
+                afterEpisode={heroIndex > 0 ? visibleEpisodes[heroIndex - 1] : null}
+                beforeEpisode={heroIndex < visibleEpisodes.length - 1 ? visibleEpisodes[heroIndex + 1] : null}
+                audioRef={audioRef}
+                onPlayingChange={setIsPlaying}
+                onSwipeAfter={swipeToDayAfter}
+                onSwipeBefore={swipeToDayBefore}
+                canSwipeAfter={heroIndex > 0 && !pendingSelection}
+                canSwipeBefore={heroIndex < visibleEpisodes.length - 1 && !pendingSelection}
+              >
                 <DayNav
                   onDayAfter={goToDayAfter}
                   onDayBefore={goToDayBefore}
