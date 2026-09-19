@@ -199,6 +199,8 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
                 onSwipeBefore={swipeToDayBefore}
                 canSwipeAfter={heroIndex > 0 && !pendingSelection}
                 canSwipeBefore={heroIndex < visibleEpisodes.length - 1 && !pendingSelection}
+                afterIsNewest={heroIndex <= 1}
+                beforeIsOldest={heroIndex >= visibleEpisodes.length - 2}
               >
                 <DayNav
                   onDayAfter={goToDayAfter}

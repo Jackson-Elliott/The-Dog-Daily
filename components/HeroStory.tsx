@@ -6,6 +6,7 @@ import type { Episode } from "@/types/episode";
 import { formatEpisodeDate, truncateHeadline } from "@/lib/format";
 import { HERO_SWIPE_GAP_PX, useHeroSwipe } from "@/lib/useHeroSwipe";
 import TypesetHeadline from "@/components/TypesetHeadline";
+import DayNav from "@/components/DayNav";
 
 function PlayIcon() {
   return (
@@ -23,6 +24,9 @@ function PauseIcon() {
     </svg>
   );
 }
+
+const PLAY_CIRCLE_CLASS =
+  "pointer-events-none absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white sm:h-20 sm:w-20";
 
 function HeroCaption({
   episode,
@@ -47,17 +51,36 @@ function HeroCaption({
 }
 
 /** Neighbor story shown under the current card while a mobile swipe is in flight. */
-function HeroPeek({ episode }: { episode: Episode }) {
+function HeroPeek({
+  episode,
+  disableDayAfter,
+  disableDayBefore,
+}: {
+  episode: Episode;
+  disableDayAfter: boolean;
+  disableDayBefore: boolean;
+}) {
   return (
-    <div>
+    <div className="flex flex-col gap-0 bg-white">
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-500">
         {episode.photoUrl ? (
           <Image src={episode.photoUrl} alt="" fill unoptimized className="object-cover" />
         ) : null}
+        <div className={PLAY_CIRCLE_CLASS}>
+          <PlayIcon />
+        </div>
       </div>
       <HeroCaption episode={episode}>
-        {/* Matches DayNav's row so the incoming card is the same height. */}
-        <div className="mt-4 h-10" aria-hidden="true" />
+        <DayNav
+          onDayAfter={() => {}}
+          onDayBefore={() => {}}
+          disableDayAfter={disableDayAfter}
+          disableDayBefore={disableDayBefore}
+        >
+          {/* Same footprint as AudioWave so the pills sit where they will
+              after the swipe commits (20 × 1.5px bars + 19 × 2px gaps). */}
+          <div className="h-8 w-[68px] shrink-0" aria-hidden="true" />
+        </DayNav>
       </HeroCaption>
     </div>
   );
@@ -86,6 +109,8 @@ export default function HeroStory({
   onSwipeBefore,
   canSwipeAfter = false,
   canSwipeBefore = false,
+  afterIsNewest = false,
+  beforeIsOldest = false,
   children,
 }: {
   episode: Episode;
@@ -100,6 +125,10 @@ export default function HeroStory({
   onSwipeBefore?: () => void;
   canSwipeAfter?: boolean;
   canSwipeBefore?: boolean;
+  /** The Day-After peek is the newest story, so its Day After pill is dimmed. */
+  afterIsNewest?: boolean;
+  /** The Day-Before peek is the oldest story, so its Day Before pill is dimmed. */
+  beforeIsOldest?: boolean;
   /** DayNav (and AudioWave), housed in the tinted caption box under the photo. */
   children?: ReactNode;
 }) {
@@ -146,7 +175,7 @@ export default function HeroStory({
           style={{ transform: `translateX(calc(-100% - ${HERO_SWIPE_GAP_PX}px + ${swipe.dragX}px))` }}
           aria-hidden="true"
         >
-          <HeroPeek episode={afterEpisode} />
+          <HeroPeek episode={afterEpisode} disableDayAfter={afterIsNewest} disableDayBefore={false} />
         </div>
       ) : null}
 
@@ -156,7 +185,7 @@ export default function HeroStory({
           style={{ transform: `translateX(calc(100% + ${HERO_SWIPE_GAP_PX}px + ${swipe.dragX}px))` }}
           aria-hidden="true"
         >
-          <HeroPeek episode={beforeEpisode} />
+          <HeroPeek episode={beforeEpisode} disableDayAfter={false} disableDayBefore={beforeIsOldest} />
         </div>
       ) : null}
 
@@ -213,7 +242,7 @@ export default function HeroStory({
               togglePlay();
             }}
             aria-label={isPlaying ? "Pause" : "Play"}
-            className="pointer-events-none absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition group-hover:bg-black/55 sm:h-20 sm:w-20"
+            className={`${PLAY_CIRCLE_CLASS} transition group-hover:bg-black/55`}
           >
             {isPlaying ? <PauseIcon /> : <PlayIcon />}
           </button>
