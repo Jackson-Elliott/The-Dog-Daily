@@ -73,8 +73,8 @@ function HeroPeek({ episode }: { episode: Episode }) {
  * signal. Render this keyed by `episode.id` so its play state always starts
  * fresh when a different episode is chosen.
  *
- * On viewports below `sm`, the photo/grey box is a swipe handle: the whole
- * card follows the finger and the neighbor story peeks in from the side.
+ * On the stacked layout (below `lg`), the whole card is a swipe handle: it
+ * follows the finger and the neighbor story peeks in from the side.
  */
 export default function HeroStory({
   episode,
@@ -127,11 +127,10 @@ export default function HeroStory({
 
   function handleCardClick(event: MouseEvent<HTMLDivElement>) {
     const target = event.target as HTMLElement;
-    // Nested Day After/Before (and the on-image play control) handle themselves.
+    // Nested Day After/Before handle themselves.
     if (target.closest("button, a")) return;
-    // A horizontal swipe on the photo still fires a trailing click — ignore
-    // that one only. Taps on the grey caption must always play.
-    if (target.closest("[data-hero-photo]") && swipe.suppressClick) return;
+    // A horizontal swipe still fires a trailing click — ignore that one.
+    if (swipe.suppressClick) return;
     togglePlay();
   }
 
@@ -162,15 +161,15 @@ export default function HeroStory({
       ) : null}
 
       <div
-        className={`group relative flex cursor-pointer flex-col gap-0 bg-white ${settleClass ?? ""} ${isSwiping ? "select-none" : ""}`}
+        className={`group relative flex cursor-pointer flex-col gap-0 bg-white touch-pan-y ${settleClass ?? ""} ${isSwiping ? "select-none" : ""}`}
         style={currentStyle}
         onClick={handleCardClick}
         onTransitionEnd={(event) => swipe.onTrackTransitionEnd(event)}
+        {...swipe.photoHandlers}
       >
         <div
           data-hero-photo=""
-          className="relative m-0 block aspect-[16/9] w-full touch-pan-y overflow-hidden bg-neutral-500 p-0 leading-none [font-size:0]"
-          {...(swipe.isMobile ? swipe.photoHandlers : {})}
+          className="relative m-0 block aspect-[16/9] w-full overflow-hidden bg-neutral-500 p-0 leading-none [font-size:0]"
         >
           <audio
             ref={audioRef}
@@ -214,7 +213,7 @@ export default function HeroStory({
               togglePlay();
             }}
             aria-label={isPlaying ? "Pause" : "Play"}
-            className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition group-hover:bg-black/55 sm:h-20 sm:w-20"
+            className="pointer-events-none absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition group-hover:bg-black/55 sm:h-20 sm:w-20"
           >
             {isPlaying ? <PauseIcon /> : <PlayIcon />}
           </button>
@@ -225,6 +224,7 @@ export default function HeroStory({
           onActivate={(event) => {
             event.stopPropagation();
             if ((event.target as HTMLElement).closest("button, a")) return;
+            if (swipe.suppressClick) return;
             togglePlay();
           }}
         >

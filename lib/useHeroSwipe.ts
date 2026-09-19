@@ -11,7 +11,10 @@ const LOCK_PX = 8;
 const COMMIT_RATIO = 0.25;
 const FLICK_PX_PER_MS = 0.45;
 const RUBBER = 0.32;
-const MOBILE_MQ = "(max-width: 639px)";
+// Same window as the stacked homepage (side cards are `hidden lg:block`).
+// Below Tailwind `sm` used to be the cut-off, which left the single-column
+// layout (640–1023px) with no swipe at all.
+const MOBILE_MQ = "(max-width: 1023px)";
 const REDUCE_MQ = "(prefers-reduced-motion: reduce)";
 
 export type HeroSwipeHandlers = {
@@ -22,7 +25,7 @@ export type HeroSwipeHandlers = {
 };
 
 /**
- * Mobile-only (below Tailwind `sm`) horizontal swipe on the hero photo.
+ * Horizontal swipe on the stacked (below Tailwind `lg`) hero card.
  * Follows the finger, rubber-bands at either end of the list, and commits
  * to Day After (swipe right) / Day Before (swipe left) past a distance or
  * flick threshold. Vertical moves stay with the page scroll.
@@ -99,6 +102,7 @@ export function useHeroSwipe({
   }, []);
 
   const releaseCapture = (target: HTMLElement, pointerId: number) => {
+    target.style.touchAction = "";
     if (!session.current.captured) return;
     try {
       target.releasePointerCapture(pointerId);
@@ -174,6 +178,10 @@ export function useHeroSwipe({
     onPointerDown: (event) => {
       if (!latest.current.isMobile) return;
       if (phase === "settling") return;
+      // Day After / Day Before (and any other real control) keep their own
+      // click. The on-image play circle is pointer-events-none so a swipe
+      // can start in the middle of the photo.
+      if ((event.target as HTMLElement).closest("button, a")) return;
       setSuppressClick(false);
       settleHandledRef.current = false;
       draggingRef.current = true;
@@ -199,6 +207,8 @@ export function useHeroSwipe({
         session.current.axis = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
         if (session.current.axis === "vertical") return;
         setSuppressClick(true);
+        // Stop the browser claiming this as a back-swipe or a scroll.
+        event.currentTarget.style.touchAction = "none";
         try {
           event.currentTarget.setPointerCapture(event.pointerId);
           session.current.captured = true;
