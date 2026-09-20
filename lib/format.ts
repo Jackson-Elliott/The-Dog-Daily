@@ -16,11 +16,19 @@ export function isScheduledDraft(airDate: string, today = todayInSydney()): bool
   return airDate > today;
 }
 
-export function publishedEpisodes<T extends { airDate: string }>(
+/** True when the story should appear on the public homepage. */
+export function isPublicEpisode<T extends { airDate: string; published?: boolean }>(
+  episode: T,
+  today = todayInSydney(),
+): boolean {
+  return episode.published !== false && !isScheduledDraft(episode.airDate, today);
+}
+
+export function publishedEpisodes<T extends { airDate: string; published?: boolean }>(
   episodes: T[],
   today = todayInSydney(),
 ): T[] {
-  return episodes.filter((episode) => !isScheduledDraft(episode.airDate, today));
+  return episodes.filter((episode) => isPublicEpisode(episode, today));
 }
 
 /** Newest air date first, then newest created_at as a tie-breaker — the same order the public homepage uses. */

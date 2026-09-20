@@ -1,9 +1,11 @@
 import crypto from "crypto";
 
 export const ADMIN_SESSION_COOKIE = "dd_admin_session";
+export const SITE_SESSION_COOKIE = "dd_site_session";
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 export const ADMIN_SESSION_MAX_AGE_SECONDS = SESSION_TTL_MS / 1000;
+export const SITE_SESSION_MAX_AGE_SECONDS = ADMIN_SESSION_MAX_AGE_SECONDS;
 
 function getSecret(): string {
   const secret = process.env.SESSION_SECRET;

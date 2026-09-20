@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Episode } from "@/types/episode";
 import { formatEpisodeDate, isScheduledDraft } from "@/lib/format";
 import AdminEpisodeEditor from "@/components/AdminEpisodeEditor";
+import AdminPublishSwitch from "@/components/AdminPublishSwitch";
 import { adminGhostPillClass, adminMutedClass } from "@/components/admin-ui";
 
 export default function AdminEpisodeList({
@@ -17,6 +18,7 @@ export default function AdminEpisodeList({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleDelete(id: string, scriptName: string) {
@@ -37,12 +39,39 @@ export default function AdminEpisodeList({
     }
   }
 
+  async function handlePublishedChange(episode: Episode, published: boolean) {
+    setSavingId(episode.id);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.set("scriptName", episode.scriptName);
+      formData.set("airDate", episode.airDate);
+      formData.set("sourceUrl", episode.sourceUrl ?? "");
+      formData.set("headline", episode.headline ?? "");
+      formData.set("category", episode.category ?? "");
+      if (episode.photoUrl) formData.set("photoImageUrl", episode.photoUrl);
+      formData.set("published", published ? "true" : "false");
+
+      const response = await fetch(`/api/admin/episodes/${episode.id}`, {
+        method: "PATCH",
+        body: formData,
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "Failed to update status.");
+      onUpdated(body.episode as Episode);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update status.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   return (
     <div>
       <h2 className="text-3xl font-bold text-white">Stories</h2>
       <p className="mt-2 text-sm text-white/60">
-        Newest live date first. A future air date stays off the public site until that
-        morning (Sydney time).
+        Newest live date first. Drafts stay off the public site. A published story
+        with a future air date still waits until that morning (Sydney time).
       </p>
 
       {error ? <p className="mt-3 text-sm text-white">{error}</p> : null}
@@ -75,9 +104,13 @@ export default function AdminEpisodeList({
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-white">
                       {formatEpisodeDate(episode.airDate)}
-                      {isScheduledDraft(episode.airDate) ? (
+                      {!episode.published ? (
                         <span className="ml-2 font-medium text-white/50">Draft</span>
-                      ) : null}
+                      ) : isScheduledDraft(episode.airDate) ? (
+                        <span className="ml-2 font-medium text-white/50">Scheduled</span>
+                      ) : (
+                        <span className="ml-2 font-medium text-white/50">Live</span>
+                      )}
                     </p>
                     <p className="mt-1 text-xl font-bold leading-[1.15] text-white">{headline}</p>
                     <p className={`mt-1 ${adminMutedClass}`}>
@@ -95,6 +128,15 @@ export default function AdminEpisodeList({
                       </a>
                     ) : null}
                     <audio controls preload="metadata" src={episode.audioUrl} className="mt-3 w-full" />
+
+                    <div className="mt-4">
+                      <AdminPublishSwitch
+                        id={`list-published-${episode.id}`}
+                        published={episode.published}
+                        disabled={savingId === episode.id}
+                        onChange={(published) => handlePublishedChange(episode, published)}
+                      />
+                    </div>
 
                     <div className="mt-4 flex gap-2">
                       <button

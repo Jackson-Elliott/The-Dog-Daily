@@ -30,6 +30,7 @@ export const mockEpisodes: Episode[] = [
     category: "Business",
     photoUrl:
       "https://static.ffx.io/images/$zoom_0.5295%2C$multiply_2%2C$ratio_1.777778%2C$width_1059%2C$x_0%2C$y_24/t_crop_custom/c_scale%2Cw_800%2Cq_88%2Cf_jpg/t_afr_no_label_no_age_social_wm/9d978f6100c755b1f16fd273ae71bf3605e9adaa",
+    published: true,
     createdAt: now,
   },
   {
@@ -43,6 +44,7 @@ export const mockEpisodes: Episode[] = [
     category: "News",
     photoUrl:
       "https://media-cldnry.s-nbcnews.com/image/upload/t_nbcnews-fp-1200-630,f_auto,q_auto:best/rockcms/2026-09/260908-3x2-Arthur-Lundeen-ew-505p-e06aef.jpg",
+    published: true,
     createdAt: now,
   },
   {
@@ -55,6 +57,7 @@ export const mockEpisodes: Episode[] = [
     category: "Culture",
     photoUrl:
       "https://cdn.slowdownwiseup.co.uk/media/original_images/WEB_Screenshot_2026-09-15_at_11.07.45_ca966b8a7fd2dba7e91e35922d03ae5fd1d0.jpg",
+    published: true,
     createdAt: now,
   },
   {
@@ -68,6 +71,7 @@ export const mockEpisodes: Episode[] = [
     category: "Culture",
     photoUrl:
       "https://static.ffx.io/images/$zoom_0.9806%2C$multiply_2%2C$ratio_1.777778%2C$width_1059%2C$x_0%2C$y_608/t_crop_custom/c_scale%2Cw_1200%2Cq_88%2Cf_auto/663069da5fd24c9b3618af46db110757692c01692b9971b925d114617101d23a",
+    published: true,
     createdAt: now,
   },
   {
@@ -80,6 +84,7 @@ export const mockEpisodes: Episode[] = [
     category: "News",
     photoUrl:
       "https://i.guim.co.uk/img/media/e44905997f5cadb38f09f93a87fc8f2f8d371861/74_0_4006_3207/master/4006.jpg?width=1200&height=630&quality=85&auto=format&fit=crop&precrop=40:21,offset-x50,offset-y0&overlay-align=bottom%2Cleft&overlay-width=100p&overlay-base64=L2ltZy9zdGF0aWMvb3ZlcmxheXMvdGctZGVmYXVsdC5wbmc&enable=upscale&s=e1bb57149ee10664aa2e488b3cc09edc",
+    published: true,
     createdAt: now,
   },
   {
@@ -92,6 +97,7 @@ export const mockEpisodes: Episode[] = [
     category: "Culture",
     photoUrl:
       "https://live-production.wcms.abc-cdn.net.au/8b742056fea42dae7faaafece76891d8?impolicy=wcms_watermark_news&cropH=805&cropW=1431&xPos=0&yPos=175&width=862&height=485&imformat=generic",
+    published: true,
     createdAt: now,
   },
   {
@@ -105,6 +111,7 @@ export const mockEpisodes: Episode[] = [
     category: "Arts",
     photoUrl:
       "https://images.thebrag.com/cdn-cgi/image/fit=crop,width=1200,height=628/https://images-r2-1.thebrag.com/rs/uploads/2026/09/teenage-dirtbag-stella-lefty.webp",
+    published: true,
     createdAt: now,
   },
 ];

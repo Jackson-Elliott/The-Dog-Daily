@@ -39,6 +39,7 @@ export async function POST(request: Request) {
         typeof photoImageUrl === "string" && photoImageUrl.trim() ? photoImageUrl.trim() : null,
       photoFile: photoFile instanceof File && photoFile.size > 0 ? photoFile : null,
       audioFile,
+      published: formData.get("published") !== "false",
     });
     return NextResponse.json({ episode }, { status: 201 });
   } catch (error) {

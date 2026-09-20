@@ -19,7 +19,7 @@ export default async function AdminPage() {
   let episodes: Awaited<ReturnType<typeof listEpisodes>> = [];
   let loadError: string | null = null;
   try {
-    episodes = await listEpisodes({ includeScheduled: true });
+    episodes = await listEpisodes({ includeDrafts: true });
   } catch (error) {
     loadError = error instanceof Error ? error.message : "Failed to load episodes.";
   }

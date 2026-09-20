@@ -6,6 +6,7 @@ import { CATEGORIES } from "@/lib/categories";
 import { isScheduledDraft } from "@/lib/format";
 import AdminAudioDropzone from "@/components/AdminAudioDropzone";
 import AdminCoverPicker from "@/components/AdminCoverPicker";
+import AdminPublishSwitch from "@/components/AdminPublishSwitch";
 import AdminTextInput from "@/components/AdminTextInput";
 import {
   adminFieldClass,
@@ -36,6 +37,7 @@ export default function AdminEpisodeEditor({
   const [realHeadline, setRealHeadline] = useState("");
   const [headline, setHeadline] = useState(episode.headline ?? "");
   const [category, setCategory] = useState(episode.category ?? "");
+  const [published, setPublished] = useState(episode.published);
   const [photoImageUrl, setPhotoImageUrl] = useState<string | null>(episode.photoUrl);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -108,6 +110,7 @@ export default function AdminEpisodeEditor({
       formData.set("sourceUrl", sourceUrl);
       formData.set("headline", headline);
       formData.set("category", category);
+      formData.set("published", published ? "true" : "false");
       if (photoFile) formData.set("photoFile", photoFile);
       else if (photoImageUrl) formData.set("photoImageUrl", photoImageUrl);
       if (audioFile) formData.set("audioFile", audioFile);
@@ -229,6 +232,16 @@ export default function AdminEpisodeEditor({
           ))}
         </select>
       </div>
+
+      <AdminPublishSwitch id="edit-published" published={published} onChange={setPublished} />
+      {published && isScheduledDraft(airDate) ? (
+        <p className={adminMutedClass}>
+          Published, but the air date is in the future, so it still stays off the site until then.
+        </p>
+      ) : null}
+      {!published ? (
+        <p className={adminMutedClass}>Drafts stay off the public site until you switch this to Published.</p>
+      ) : null}
 
       <AdminCoverPicker
         id="edit-cover"

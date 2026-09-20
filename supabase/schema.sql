@@ -12,12 +12,16 @@ create table if not exists episodes (
   -- "Technology", "Culture", "Arts"), used to filter the header nav tabs.
   -- Nullable/uncategorized episodes just show under "All".
   category text,
+  -- Manual draft/published switch (see types/episode.ts). Existing rows
+  -- default to published so currently live stories stay live.
+  published boolean not null default true,
   created_at timestamptz not null default now()
 );
 
--- Already have an `episodes` table from before this column existed? Run this
--- separately (safe to re-run):
+-- Already have an `episodes` table from before these columns existed? Run
+-- these separately (safe to re-run):
 -- alter table episodes add column if not exists category text;
+-- alter table episodes add column if not exists published boolean not null default true;
 
 create index if not exists episodes_air_date_idx on episodes (air_date desc);
 

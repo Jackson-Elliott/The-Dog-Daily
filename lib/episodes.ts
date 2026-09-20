@@ -17,8 +17,9 @@ function isMockEpisodesEnabled(): boolean {
 // Mutable copy so admin edits/deletes in mock mode actually change what
 // listEpisodes returns for the life of the server process. The original
 // mockEpisodes array stays as the seed. The public homepage only sees
-// episodes whose air date is today or earlier (Sydney); pass
-// { includeScheduled: true } in admin to include future drafts.
+// episodes that are published and whose air date is today or earlier
+// (Sydney); pass { includeDrafts: true } in admin to include drafts and
+// scheduled stories.
 let mockEpisodeStore: Episode[] | null = null;
 
 function getMockEpisodeStore(): Episode[] {
@@ -37,6 +38,7 @@ interface EpisodeRow {
   headline: string | null;
   photo_url: string | null;
   category: string | null;
+  published?: boolean | null;
   created_at: string;
 }
 
@@ -50,16 +52,17 @@ function rowToEpisode(row: EpisodeRow): Episode {
     headline: row.headline,
     photoUrl: row.photo_url,
     category: row.category,
+    published: row.published !== false,
     createdAt: row.created_at,
   };
 }
 
-export async function listEpisodes(options?: { includeScheduled?: boolean }): Promise<Episode[]> {
+export async function listEpisodes(options?: { includeDrafts?: boolean; includeScheduled?: boolean }): Promise<Episode[]> {
   const episodes = isMockEpisodesEnabled()
     ? sortEpisodesByAirDate(getMockEpisodeStore())
     : await listEpisodesFromSupabase();
 
-  return options?.includeScheduled ? episodes : publishedEpisodes(episodes);
+  return options?.includeDrafts || options?.includeScheduled ? episodes : publishedEpisodes(episodes);
 }
 
 async function listEpisodesFromSupabase(): Promise<Episode[]> {
@@ -108,6 +111,7 @@ export interface CreateEpisodeInput {
   /** Local cover image chosen in admin; takes precedence over photoImageUrl. */
   photoFile: File | null;
   audioFile: File;
+  published: boolean;
 }
 
 export interface UpdateEpisodeInput {
@@ -126,6 +130,7 @@ export interface UpdateEpisodeInput {
   photoFile: File | null;
   /** Optional replacement audio. Omit/null to keep the current file. */
   audioFile: File | null;
+  published: boolean;
 }
 
 async function fileToDataUrl(file: File): Promise<string> {
@@ -215,6 +220,7 @@ export async function createEpisode(input: CreateEpisodeInput): Promise<Episode>
       headline: input.headline,
       category: input.category,
       photo_url: photoUrl,
+      published: input.published,
     })
     .select("*")
     .single();
@@ -243,6 +249,7 @@ export async function updateEpisode(id: string, input: UpdateEpisodeInput): Prom
       sourceUrl: input.sourceUrl,
       headline: input.headline,
       category: input.category,
+      published: input.published,
       photoUrl: input.photoFile
         ? await fileToDataUrl(input.photoFile)
         : (input.photoImageUrl ?? current.photoUrl),
@@ -266,12 +273,13 @@ export async function updateEpisode(id: string, input: UpdateEpisodeInput): Prom
   }
 
   const current = rowToEpisode(existing as EpisodeRow);
-  const patch: Record<string, string | null> = {
+  const patch: Record<string, string | boolean | null> = {
     script_name: input.scriptName,
     air_date: input.airDate,
     source_url: input.sourceUrl,
     headline: input.headline,
     category: input.category,
+    published: input.published,
   };
 
   if (input.audioFile) {

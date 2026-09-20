@@ -2,9 +2,9 @@ import NewsHomeClient from "@/components/NewsHomeClient";
 import { listEpisodes } from "@/lib/episodes";
 import type { Episode } from "@/types/episode";
 
-// Episodes change whenever the admin uploads a new one, and future-dated
-// drafts become public on their air date, so always fetch fresh data instead
-// of freezing the list at build time.
+// Episodes change whenever the admin uploads or publishes one, and
+// scheduled stories become public on their air date, so always fetch
+// fresh data instead of freezing the list at build time.
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {

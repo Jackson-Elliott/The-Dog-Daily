@@ -40,6 +40,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       photoImageUrl: parseOptionalText(photoImageUrl),
       photoFile: photoFile instanceof File && photoFile.size > 0 ? photoFile : null,
       audioFile: audioFile instanceof File && audioFile.size > 0 ? audioFile : null,
+      published: formData.get("published") !== "false",
     });
     return NextResponse.json({ episode });
   } catch (error) {
