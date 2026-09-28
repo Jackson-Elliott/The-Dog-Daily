@@ -16,14 +16,16 @@ const LAUNCH_DISTANCE_PX = 18;
  */
 export default function StoryCard({
   episode,
-  side,
+  side = "left",
   isLaunching = false,
   introDelayMs = 0,
+  playInPlace = false,
+  isPlaying = false,
   onSelect,
 }: {
   episode: Episode;
   /** Which column this card renders in — sets which way it "launches" toward the middle. */
-  side: "left" | "right";
+  side?: "left" | "right";
   /** True for the brief window between tapping a card and it becoming the hero. */
   isLaunching?: boolean;
   /**
@@ -33,6 +35,9 @@ export default function StoryCard({
    * is the initial page load or a card mounting later (e.g. after switching category).
    */
   introDelayMs?: number;
+  /** On All, click plays audio here instead of promoting the card to the hero. */
+  playInPlace?: boolean;
+  isPlaying?: boolean;
   onSelect: (id: string, side: "left" | "right") => void;
 }) {
   const headline = episode.headline ?? episode.scriptName;
@@ -44,8 +49,9 @@ export default function StoryCard({
         type="button"
         onClick={() => onSelect(episode.id, side)}
         disabled={isLaunching}
+        aria-label={playInPlace ? `${isPlaying ? "Pause" : "Play"} ${headline}` : undefined}
         style={{ "--story-launch-x": `${launchX}px` } as CSSProperties}
-        className={`block w-full text-left ${isLaunching ? "story-launch" : ""}`}
+        className={`group block w-full text-left ${isLaunching ? "story-launch" : ""}`}
       >
         <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-500">
           {episode.photoUrl ? (
@@ -54,12 +60,39 @@ export default function StoryCard({
               alt={headline}
               fill
               unoptimized
-              className="object-cover grayscale transition hover:opacity-90"
+              className={
+                playInPlace
+                  ? `object-cover transition-[filter] duration-300 ${
+                      isPlaying ? "grayscale-0" : "grayscale group-hover:grayscale-0"
+                    }`
+                  : "object-cover grayscale transition hover:opacity-90"
+              }
             />
+          ) : null}
+          {playInPlace ? (
+            <span
+              className="pointer-events-none absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white"
+              aria-hidden="true"
+            >
+              {isPlaying ? (
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                  <rect x="6" y="5" width="4" height="14" />
+                  <rect x="14" y="5" width="4" height="14" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
+            </span>
           ) : null}
         </div>
         {/* BBC-style caption: sits below the photo (not overlaid on it). */}
-        <p className="headline-font mt-2 text-sm font-semibold text-black">
+        <p
+          className={`headline-font mt-2 font-semibold text-black ${
+            playInPlace ? "text-[1.09375rem] lg:text-sm" : "text-sm"
+          }`}
+        >
           <TypesetHeadline text={headline} />
         </p>
       </button>

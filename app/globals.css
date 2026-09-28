@@ -44,7 +44,7 @@ body {
    down just enough to stay on one line, instead of tightening px-3. */
 @media (max-width: 639px) {
   .category-nav-fit {
-    zoom: min(1, calc((100vw - 1rem) / 26.5rem));
+    zoom: min(1, calc((100vw - 1rem) / 29.5rem));
   }
 }
 

@@ -99,6 +99,10 @@ function extensionFromContentType(contentType: string | null, fallback: string):
   return EXTENSION_BY_CONTENT_TYPE[bare] ?? fallback;
 }
 
+function isMissingPublishedColumn(message: string): boolean {
+  return /'published' column/i.test(message);
+}
+
 export interface CreateEpisodeInput {
   scriptName: string;
   airDate: string;
@@ -209,21 +213,23 @@ export async function createEpisode(input: CreateEpisodeInput): Promise<Episode>
       ? await rehostPhoto(input.photoImageUrl, input.airDate, id)
       : null;
 
-  const { data, error } = await supabase
-    .from("episodes")
-    .insert({
-      id,
-      script_name: input.scriptName,
-      air_date: input.airDate,
-      audio_url: audioUrl,
-      source_url: input.sourceUrl,
-      headline: input.headline,
-      category: input.category,
-      photo_url: photoUrl,
-      published: input.published,
-    })
-    .select("*")
-    .single();
+  const row: Record<string, string | boolean | null> = {
+    id,
+    script_name: input.scriptName,
+    air_date: input.airDate,
+    audio_url: audioUrl,
+    source_url: input.sourceUrl,
+    headline: input.headline,
+    category: input.category,
+    photo_url: photoUrl,
+    published: input.published,
+  };
+
+  let { data, error } = await supabase.from("episodes").insert(row).select("*").single();
+  if (error && isMissingPublishedColumn(error.message)) {
+    const { published: _published, ...withoutPublished } = row;
+    ({ data, error } = await supabase.from("episodes").insert(withoutPublished).select("*").single());
+  }
 
   if (error) {
     throw new Error(`Failed to save episode: ${error.message}`);
@@ -293,7 +299,11 @@ export async function updateEpisode(id: string, input: UpdateEpisodeInput): Prom
     if (rehosted) patch.photo_url = rehosted;
   }
 
-  const { data, error } = await supabase.from("episodes").update(patch).eq("id", id).select("*").single();
+  let { data, error } = await supabase.from("episodes").update(patch).eq("id", id).select("*").single();
+  if (error && isMissingPublishedColumn(error.message)) {
+    const { published: _published, ...withoutPublished } = patch;
+    ({ data, error } = await supabase.from("episodes").update(withoutPublished).eq("id", id).select("*").single());
+  }
   if (error) {
     throw new Error(`Failed to update episode: ${error.message}`);
   }

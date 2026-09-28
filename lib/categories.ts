@@ -10,3 +10,9 @@
 export const CATEGORIES = ["News", "Sports", "Politics", "Business", "Culture", "Arts"] as const;
 
 export type Category = (typeof CATEGORIES)[number];
+
+/** Header tab between Arts and Adopt — every live episode, no hero. */
+export const ALL_VIEW = "All";
+
+/** null is Home. "All" is the archive grid. Anything else is a category filter. */
+export type ActiveCategory = Category | typeof ALL_VIEW | null;

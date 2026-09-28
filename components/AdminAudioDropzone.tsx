@@ -2,6 +2,7 @@
 
 import { useRef, useState, type DragEvent } from "react";
 import { adminLabelClass, adminMutedClass } from "@/components/admin-ui";
+import { convertWavToMp3IfNeeded } from "@/lib/wav-to-mp3";
 
 function isAudioFile(file: File): boolean {
   if (file.type.startsWith("audio/")) return true;
@@ -31,25 +32,50 @@ export default function AdminAudioDropzone({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
+  const convertGeneration = useRef(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
+  const [convertedFromWav, setConvertedFromWav] = useState(false);
+  const [convertError, setConvertError] = useState<string | null>(null);
 
-  function assignFile(next: File | null) {
+  function assignFile(next: File | null, fromWav = false) {
     onFile(next);
+    setConvertedFromWav(Boolean(next) && fromWav);
     const input = inputRef.current;
     if (!input) return;
     if (!next) {
       input.value = "";
       return;
     }
-    const data = new DataTransfer();
-    data.items.add(next);
-    input.files = data.files;
+    try {
+      const data = new DataTransfer();
+      data.items.add(next);
+      input.files = data.files;
+    } catch {
+      // The native input is only a fallback; React state holds the file for upload.
+    }
   }
 
-  function takeFirstAudio(files: FileList | null) {
+  async function takeFirstAudio(files: FileList | null) {
     if (!files?.length) return;
     const audio = Array.from(files).find(isAudioFile);
-    if (audio) assignFile(audio);
+    if (!audio) return;
+
+    const generation = ++convertGeneration.current;
+    setConvertError(null);
+    assignFile(null);
+    setIsConverting(true);
+    try {
+      const next = await convertWavToMp3IfNeeded(audio);
+      if (generation !== convertGeneration.current) return;
+      assignFile(next, next !== audio);
+    } catch (error) {
+      if (generation !== convertGeneration.current) return;
+      setConvertError(error instanceof Error ? error.message : "Couldn't convert that WAV to MP3.");
+      assignFile(null);
+    } finally {
+      if (generation === convertGeneration.current) setIsConverting(false);
+    }
   }
 
   function handleDragEnter(event: DragEvent<HTMLLabelElement>) {
@@ -76,7 +102,7 @@ export default function AdminAudioDropzone({
     event.preventDefault();
     dragDepth.current = 0;
     setIsDragging(false);
-    takeFirstAudio(event.dataTransfer.files);
+    void takeFirstAudio(event.dataTransfer.files);
   }
 
   return (
@@ -96,26 +122,30 @@ export default function AdminAudioDropzone({
           ref={inputRef}
           id={id}
           key={inputKey}
-          required={required}
+          required={required && !file}
           type="file"
-          accept="audio/*"
-          onChange={(event) => takeFirstAudio(event.target.files)}
+          accept="audio/*,.wav,.mp3"
+          onChange={(event) => void takeFirstAudio(event.target.files)}
           className="sr-only"
         />
-        {file ? (
+        {isConverting ? (
+          <span>Converting WAV to MP3...</span>
+        ) : file ? (
           <>
             <span className="font-medium">{file.name}</span>
             <span className={`mt-1 ${adminMutedClass}`}>
-              {formatSize(file.size)} · drop a different file to replace
+              {formatSize(file.size)}
+              {convertedFromWav ? " · converted from WAV" : ""} · drop a different file to replace
             </span>
           </>
         ) : (
           <>
             <span>Drop mp3 or wav here</span>
-            <span className={`mt-1 ${adminMutedClass}`}>or click to choose a file</span>
+            <span className={`mt-1 ${adminMutedClass}`}>WAV is converted to MP3 automatically</span>
           </>
         )}
       </label>
+      {convertError ? <p className="mt-1 text-sm text-white">{convertError}</p> : null}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useState, type FormEvent } from "react";
+import BrandLogo from "@/components/BrandLogo";
 
 function safeNextPath(value: string | undefined): string {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/gate")) {
@@ -39,14 +39,7 @@ export default function SiteGateForm({ from }: { from?: string }) {
   return (
     <form method="post" action="/gate" onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
       <div className="flex justify-center">
-        <Image
-          src="/images/logo-combined.png"
-          alt="Animal Welfare League NSW — the dog daily"
-          width={947}
-          height={336}
-          priority
-          className="h-20 w-auto sm:h-28"
-        />
+        <BrandLogo />
       </div>
 
       <div>

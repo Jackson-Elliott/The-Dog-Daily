@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import BrandLogo from "@/components/BrandLogo";
 
 /**
  * Dark-mode twin of SiteHeader: same logo lockup, hairline rules, and pill
@@ -19,20 +19,15 @@ export default function AdminHeader({ loggedIn }: { loggedIn: boolean }) {
 
   return (
     <header className="mx-auto w-full max-w-5xl px-4 pt-6 sm:pt-8">
-      <div className="flex justify-center py-1">
-        <Link href="/" aria-label="The Dog Daily home" className="cursor-pointer">
-          <Image
-            src="/images/logo-combined.png"
-            alt="Animal Welfare League NSW — the dog daily"
-            width={947}
-            height={336}
-            priority
-            className="h-20 w-auto invert sm:h-28"
-          />
-        </Link>
-      </div>
+      {loggedIn ? (
+        <div className="flex justify-center py-1">
+          <Link href="/" aria-label="The Dog Daily home" className="cursor-pointer">
+            <BrandLogo invert />
+          </Link>
+        </div>
+      ) : null}
 
-      <div className="mt-5 border-t border-white" />
+      <div className={loggedIn ? "mt-5 border-t border-white" : "border-t border-white"} />
       <nav
         aria-label="Admin"
         className="flex justify-center gap-3 px-4 py-2 text-[13px] font-medium text-white sm:px-0"

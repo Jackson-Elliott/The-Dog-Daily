@@ -1,15 +1,12 @@
-import Image from "next/image";
-import { CATEGORIES } from "@/lib/categories";
-
-/** null selects "Home" (every episode, no filter). */
-type ActiveCategory = string | null;
+import { ALL_VIEW, CATEGORIES, type ActiveCategory } from "@/lib/categories";
+import BrandLogo from "@/components/BrandLogo";
 
 const AWL_NSW_ADOPT_URL = "https://www.awlnsw.com.au/adopt/";
 
 /**
  * Logo lockup + category nav, styled after a BBC-style news masthead. Each
- * tab (plus "Home") filters the homepage's episode list down to that
- * category — see components/NewsHomeClient.tsx, which owns the selection
+ * category tab (plus "Home") filters the homepage. "All" is a separate
+ * archive grid — see components/NewsHomeClient.tsx, which owns the selection
  * state and passes it down here.
  */
 export default function SiteHeader({
@@ -28,14 +25,7 @@ export default function SiteHeader({
           aria-label="The Dog Daily home"
           className="cursor-pointer"
         >
-          <Image
-            src="/images/logo-combined.png"
-            alt="Animal Welfare League NSW — the dog daily"
-            width={947}
-            height={336}
-            priority
-            className="h-20 w-auto sm:h-28"
-          />
+          <BrandLogo />
         </button>
       </div>
 
@@ -72,6 +62,18 @@ export default function SiteHeader({
               {category}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => onSelectCategory?.(ALL_VIEW)}
+            aria-pressed={activeCategory === ALL_VIEW}
+            className={`shrink-0 rounded-full px-3 py-1 transition ${
+              activeCategory === ALL_VIEW
+                ? "bg-black text-white"
+                : "text-black hover:bg-neutral-100"
+            }`}
+          >
+            All
+          </button>
           {/* Not a filter (hence no aria-pressed) — a permanent link out to AWL
               NSW's adoption page, styled like the category toggles either side
               of it rather than as a standalone CTA pill. */}

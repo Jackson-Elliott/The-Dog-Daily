@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import BrandLogo from "@/components/BrandLogo";
 import { adminFieldClass, adminLabelClass, adminSolidPillClass } from "@/components/admin-ui";
 
 export default function AdminLoginForm() {
@@ -34,6 +35,9 @@ export default function AdminLoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto w-full max-w-md space-y-6">
+      <div className="flex justify-center">
+        <BrandLogo invert />
+      </div>
       <div>
         <h1 className="text-4xl font-bold text-white">Sign in</h1>
         <p className="mt-2 text-sm text-white/60">Enter the admin password to upload and edit episodes.</p>

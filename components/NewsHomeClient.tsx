@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Episode } from "@/types/episode";
+import { ALL_VIEW, type ActiveCategory } from "@/lib/categories";
 import SiteHeader from "@/components/SiteHeader";
 import StoryCard from "@/components/StoryCard";
+import AllStoriesGrid from "@/components/AllStoriesGrid";
 import HeroStory from "@/components/HeroStory";
 import AudioWave from "@/components/AudioWave";
 import DayNav from "@/components/DayNav";
@@ -31,8 +33,8 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
   // Shared with AudioWave so it can attach a Web Audio AnalyserNode to the
   // exact same <audio> element HeroStory plays (see components/AudioWave.tsx).
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  // null = "Home" (no filter). See components/SiteHeader.tsx for the tabs.
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  // null = "Home". ALL_VIEW is the no-hero archive. See SiteHeader.
+  const [activeCategory, setActiveCategory] = useState<ActiveCategory>(null);
 
   // Which side the *next* hero should visually enter from — set right before
   // heroIndex changes so the freshly-mounted hero wrapper (see `key={hero.id}`
@@ -56,11 +58,13 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
     };
   }, []);
 
-  const visibleEpisodes = activeCategory
-    ? episodes.filter((episode) => episode.category === activeCategory)
-    : episodes;
+  const isAllView = activeCategory === ALL_VIEW;
+  const visibleEpisodes =
+    activeCategory && !isAllView
+      ? episodes.filter((episode) => episode.category === activeCategory)
+      : episodes;
 
-  function selectCategory(category: string | null) {
+  function selectCategory(category: ActiveCategory) {
     if (launchTimeoutRef.current) clearTimeout(launchTimeoutRef.current);
     setPendingSelection(null);
     setHeroDirection(null);
@@ -78,9 +82,23 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
           <p>
             {episodes.length === 0
               ? "No episodes yet. Check back soon for the next Dog Daily."
-              : "No episodes in this category yet."}
+              : isAllView
+                ? "No live episodes yet."
+                : "No episodes in this category yet."}
           </p>
         </div>
+        <SiteFooter />
+      </div>
+    );
+  }
+
+  if (isAllView) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <SiteHeader activeCategory={activeCategory} onSelectCategory={selectCategory} />
+        <main className="mx-auto w-full max-w-5xl px-4 py-6">
+          <AllStoriesGrid episodes={visibleEpisodes} />
+        </main>
         <SiteFooter />
       </div>
     );
