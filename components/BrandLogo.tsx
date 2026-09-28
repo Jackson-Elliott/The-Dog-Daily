@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-const LOGO_SRC = "/images/logo-combined.png";
+const LOGO_SRC = "/images/The Dog Daily_NEW NEW Logo.png";
 const LOGO_WIDTH = 1713;
 const LOGO_HEIGHT = 271;
 const LOGO_ALT = "Animal Welfare League NSW — the dog daily";
