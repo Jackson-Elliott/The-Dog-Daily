@@ -22,7 +22,7 @@ export default function SiteGateForm({ from }: { from?: string }) {
             type="password"
             required
             autoFocus
-            className="mt-1 w-full border border-black bg-transparent px-3 py-2 text-sm text-black outline-none focus:bg-black/5"
+            className="mt-1 w-full border border-black bg-transparent px-3 py-2 text-base text-black outline-none focus:bg-black/5"
           />
         </div>
 

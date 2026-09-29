@@ -16,6 +16,16 @@ const RUBBER = 0.32;
 // layout (640–1023px) with no swipe at all.
 const MOBILE_MQ = "(max-width: 1023px)";
 const REDUCE_MQ = "(prefers-reduced-motion: reduce)";
+/** Trailing click after a swipe — module-level so it survives the hero remount. */
+let swallowHeroClickUntil = 0;
+
+export function shouldSwallowHeroClick() {
+  return performance.now() < swallowHeroClickUntil;
+}
+
+function armHeroClickSwallow() {
+  swallowHeroClickUntil = performance.now() + 600;
+}
 
 export type HeroSwipeHandlers = {
   onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
@@ -206,6 +216,7 @@ export function useHeroSwipe({
         if (Math.max(Math.abs(dx), Math.abs(dy)) < LOCK_PX) return;
         session.current.axis = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
         if (session.current.axis === "vertical") return;
+        armHeroClickSwallow();
         setSuppressClick(true);
         // Stop the browser claiming this as a back-swipe or a scroll.
         event.currentTarget.style.touchAction = "none";

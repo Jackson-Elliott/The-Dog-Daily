@@ -20,14 +20,15 @@ export default function AllStoriesGrid({ episodes }: { episodes: Episode[] }) {
     if (!episode || !audioEl) return;
 
     if (activeId === id) {
-      if (audioEl.paused) void audioEl.play();
+      if (audioEl.paused) void audioEl.play().catch(() => {});
       else audioEl.pause();
       return;
     }
 
+    audioEl.pause();
     audioEl.src = episode.audioUrl;
     setActiveId(id);
-    void audioEl.play();
+    void audioEl.play().catch(() => {});
   }
 
   return (

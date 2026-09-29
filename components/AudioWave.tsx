@@ -45,6 +45,14 @@ type WebkitWindow = typeof window & { webkitAudioContext?: typeof AudioContext }
 // remount, not real playback transitions.
 const audioGraphCache = new WeakMap<HTMLAudioElement, { context: AudioContext; analyser: AnalyserNode }>();
 
+/** Call from the play tap so iOS can unmute the Web Audio graph in-gesture. */
+export function resumeAudioGraph(audioEl: HTMLAudioElement | null) {
+  if (!audioEl) return Promise.resolve();
+  const graph = audioGraphCache.get(audioEl);
+  if (!graph) return Promise.resolve();
+  return graph.context.resume();
+}
+
 /**
  * Small bouncing-bar visualiser rendered as the centered `children` of
  * DayNav, sitting between the Day After / Day Before buttons on the same
@@ -156,7 +164,7 @@ export default function AudioWave({
   return (
     <div
       aria-hidden="true"
-      className={`flex h-8 shrink-0 items-center justify-center gap-[2px] transition-opacity duration-300 ${
+      className={`flex h-8 shrink-0 items-center justify-center gap-px transition-opacity duration-300 min-[360px]:gap-[2px] ${
         isPlaying ? "opacity-100" : "opacity-0"
       }`}
     >

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import BrandLogo from "@/components/BrandLogo";
-import { adminFieldClass, adminLabelClass, adminSolidPillClass } from "@/components/admin-ui";
+import { adminLabelClass, adminSolidPillClass } from "@/components/admin-ui";
 
 export default function AdminLoginForm() {
   const router = useRouter();
@@ -53,7 +53,7 @@ export default function AdminLoginForm() {
             autoFocus
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className={adminFieldClass}
+            className="mt-1 w-full border border-white bg-transparent px-3 py-2 text-base text-white outline-none [color-scheme:dark] focus:bg-white/5"
           />
         </div>
 

@@ -4,7 +4,8 @@ import Image from "next/image";
 import { useState, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from "react";
 import type { Episode } from "@/types/episode";
 import { formatEpisodeDate, truncateHeadline } from "@/lib/format";
-import { HERO_SWIPE_GAP_PX, useHeroSwipe } from "@/lib/useHeroSwipe";
+import { HERO_SWIPE_GAP_PX, shouldSwallowHeroClick, useHeroSwipe } from "@/lib/useHeroSwipe";
+import { resumeAudioGraph } from "@/components/AudioWave";
 import TypesetHeadline from "@/components/TypesetHeadline";
 import DayNav from "@/components/DayNav";
 
@@ -79,7 +80,7 @@ function HeroPeek({
         >
           {/* Same footprint as AudioWave so the pills sit where they will
               after the swipe commits (20 × 1.5px bars + 19 × 2px gaps). */}
-          <div className="h-8 w-[68px] shrink-0" aria-hidden="true" />
+          <div className="h-8 w-[49px] shrink-0 min-[360px]:w-[68px]" aria-hidden="true" />
         </DayNav>
       </HeroCaption>
     </div>
@@ -147,10 +148,13 @@ export default function HeroStory({
   function togglePlay() {
     const audioEl = audioRef.current;
     if (!audioEl) return;
+    // iOS Safari only resumes a suspended AudioContext inside the tap that
+    // started playback — a later useEffect is too late and the hero is silent.
+    void resumeAudioGraph(audioEl);
     if (isPlaying) {
       audioEl.pause();
     } else {
-      void audioEl.play();
+      void audioEl.play().catch(() => {});
     }
   }
 
@@ -159,7 +163,7 @@ export default function HeroStory({
     // Nested Day After/Before handle themselves.
     if (target.closest("button, a")) return;
     // A horizontal swipe still fires a trailing click — ignore that one.
-    if (swipe.suppressClick) return;
+    if (swipe.suppressClick || shouldSwallowHeroClick()) return;
     togglePlay();
   }
 
@@ -174,6 +178,7 @@ export default function HeroStory({
           className={`pointer-events-none absolute inset-x-0 top-0 ${settleClass ?? ""}`}
           style={{ transform: `translateX(calc(-100% - ${HERO_SWIPE_GAP_PX}px + ${swipe.dragX}px))` }}
           aria-hidden="true"
+          inert
         >
           <HeroPeek episode={afterEpisode} disableDayAfter={afterIsNewest} disableDayBefore={false} />
         </div>
@@ -184,6 +189,7 @@ export default function HeroStory({
           className={`pointer-events-none absolute inset-x-0 top-0 ${settleClass ?? ""}`}
           style={{ transform: `translateX(calc(100% + ${HERO_SWIPE_GAP_PX}px + ${swipe.dragX}px))` }}
           aria-hidden="true"
+          inert
         >
           <HeroPeek episode={beforeEpisode} disableDayAfter={false} disableDayBefore={beforeIsOldest} />
         </div>
@@ -253,7 +259,7 @@ export default function HeroStory({
           onActivate={(event) => {
             event.stopPropagation();
             if ((event.target as HTMLElement).closest("button, a")) return;
-            if (swipe.suppressClick) return;
+            if (swipe.suppressClick || shouldSwallowHeroClick()) return;
             togglePlay();
           }}
         >

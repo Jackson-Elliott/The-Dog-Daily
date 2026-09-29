@@ -60,6 +60,7 @@ export default function StoryCard({
               alt={headline}
               fill
               unoptimized
+              draggable={false}
               className={
                 playInPlace
                   ? `object-cover transition-[filter] duration-300 ${

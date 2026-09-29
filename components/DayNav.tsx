@@ -22,7 +22,7 @@ export default function DayNav({
   children?: ReactNode;
 }) {
   return (
-    <div className="mt-4 flex items-center justify-between gap-3">
+    <div className="mt-4 flex items-center justify-between gap-1 min-[360px]:gap-3">
       <button
         type="button"
         onClick={(event) => {
@@ -30,7 +30,7 @@ export default function DayNav({
           onDayAfter();
         }}
         disabled={disableDayAfter}
-        className="flex shrink-0 items-center gap-2 rounded-full border border-black px-4 py-2 text-sm font-medium text-black transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-black"
+        className="flex shrink-0 items-center gap-1.5 rounded-full border border-black px-2 py-2 text-sm font-medium text-black transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-black min-[360px]:px-3 min-[400px]:gap-2 min-[400px]:px-4"
       >
         <span aria-hidden="true">◀</span>
         Day After
@@ -43,7 +43,7 @@ export default function DayNav({
           onDayBefore();
         }}
         disabled={disableDayBefore}
-        className="flex shrink-0 items-center gap-2 rounded-full border border-black px-4 py-2 text-sm font-medium text-black transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-black"
+        className="flex shrink-0 items-center gap-1.5 rounded-full border border-black px-2 py-2 text-sm font-medium text-black transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-black min-[360px]:px-3 min-[400px]:gap-2 min-[400px]:px-4"
       >
         Day Before
         <span aria-hidden="true">▶</span>

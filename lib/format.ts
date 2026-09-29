@@ -3,12 +3,13 @@ export function todayInSydney(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
 }
 
+const MONTHS_EN_AU = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"] as const;
+
+/** Formats a YYYY-MM-DD air date without the runtime timezone or ICU month spelling. */
 export function formatEpisodeDate(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  const [year, month, day] = iso.split("-").map(Number);
+  if (!year || !month || !day) return iso;
+  return `${day} ${MONTHS_EN_AU[month - 1]} ${year}`;
 }
 
 /** True when the air date is after today in Sydney, so the story should stay off the public site. */

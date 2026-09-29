@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ALL_VIEW, CATEGORIES, type ActiveCategory } from "@/lib/categories";
 import BrandLogo from "@/components/BrandLogo";
 
 const AWL_NSW_ADOPT_URL = "https://www.awlnsw.com.au/adopt/";
+const ITEM_STAGGER_MS = 30;
+const PILL_MS = 280;
+const CLOSE_MS = 420;
 
 const FILTERS: { label: string; value: ActiveCategory }[] = [
   { label: "Home", value: null },
@@ -14,6 +17,19 @@ const FILTERS: { label: string; value: ActiveCategory }[] = [
 
 function currentLabel(activeCategory: ActiveCategory): string {
   return FILTERS.find((item) => item.value === activeCategory)?.label ?? "Home";
+}
+
+/** Layout position inside `ancestor`, ignoring CSS transforms on the way up. */
+function offsetInAncestor(element: HTMLElement, ancestor: HTMLElement) {
+  let top = 0;
+  let left = 0;
+  let node: HTMLElement | null = element;
+  while (node && node !== ancestor) {
+    top += node.offsetTop;
+    left += node.offsetLeft;
+    node = node.offsetParent instanceof HTMLElement ? node.offsetParent : null;
+  }
+  return { top, left };
 }
 
 /**
@@ -30,33 +46,139 @@ export default function SiteHeader({
   onSelectCategory?: (category: ActiveCategory) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pill, setPill] = useState<{ top: number; left: number; width: number; height: number } | null>(
+    null,
+  );
+  const [pillAnimated, setPillAnimated] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const overflowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuId = useId();
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => {
+      if (desktop.matches) setMenuOpen(false);
+    };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
 
     function handlePointerDown(event: PointerEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
+      const target = event.target as HTMLElement | null;
+      if (!target || menuRef.current?.contains(target)) return;
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+      setMenuOpen(false);
+      // iOS/Android fire the click on whatever is under the finger after
+      // the menu closes — hero, story cards, Day After. Swallow that unless
+      // the tap was the masthead logo (outside this menu, still a control).
+      if (target.closest("[data-masthead-home]")) return;
+      const swallowClick = (clickEvent: Event) => {
+        clickEvent.preventDefault();
+        clickEvent.stopPropagation();
+        document.removeEventListener("click", swallowClick, true);
+      };
+      document.addEventListener("click", swallowClick, true);
+      window.setTimeout(() => document.removeEventListener("click", swallowClick, true), 500);
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") setMenuOpen(false);
     }
 
+    if (overflowTimerRef.current) {
+      window.clearTimeout(overflowTimerRef.current);
+      overflowTimerRef.current = null;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
+      overflowTimerRef.current = window.setTimeout(() => {
+        document.body.style.overflow = previousOverflow;
+        overflowTimerRef.current = null;
+      }, CLOSE_MS);
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [menuOpen]);
 
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+
+    function measurePill() {
+      const selected = list.querySelector<HTMLElement>("[data-section-option][aria-selected='true'] button");
+      if (!selected) return;
+      const { top, left } = offsetInAncestor(selected, list);
+      setPill({
+        top,
+        left,
+        width: selected.offsetWidth,
+        height: selected.offsetHeight,
+      });
+    }
+
+    if (!menuOpen) {
+      measurePill();
+      const clear = window.setTimeout(() => {
+        setPill(null);
+        setPillAnimated(false);
+        list.style.maxHeight = "";
+      }, CLOSE_MS);
+      return () => window.clearTimeout(clear);
+    }
+
+    function fitList() {
+      const top = list.getBoundingClientRect().top;
+      const viewport = window.visualViewport?.height ?? window.innerHeight;
+      const room = Math.max(128, viewport - top - 12);
+      list.style.maxHeight = `${room}px`;
+      measurePill();
+    }
+
+    fitList();
+    let cancelled = false;
+    const raf = window.requestAnimationFrame(() => {
+      if (cancelled) return;
+      measurePill();
+      window.requestAnimationFrame(() => {
+        if (!cancelled) setPillAnimated(true);
+      });
+    });
+    list.addEventListener("scroll", measurePill, { passive: true });
+    window.addEventListener("resize", fitList);
+    window.visualViewport?.addEventListener("resize", fitList);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(raf);
+      list.removeEventListener("scroll", measurePill);
+      window.removeEventListener("resize", fitList);
+      window.visualViewport?.removeEventListener("resize", fitList);
+    };
+  }, [menuOpen, activeCategory]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
   function selectFilter(category: ActiveCategory) {
     onSelectCategory?.(category);
-    setMenuOpen(false);
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    if (category === activeCategory || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setMenuOpen(false);
+      return;
+    }
+    closeTimerRef.current = window.setTimeout(() => setMenuOpen(false), PILL_MS);
   }
 
   return (
@@ -64,9 +186,14 @@ export default function SiteHeader({
       <div className="flex justify-center py-1">
         <button
           type="button"
-          onClick={() => onSelectCategory?.(null)}
+          data-masthead-home=""
+          onClick={() => {
+            if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+            setMenuOpen(false);
+            onSelectCategory?.(null);
+          }}
           aria-label="The Dog Daily home"
-          className="cursor-pointer"
+          className="flex max-w-full cursor-pointer items-center"
         >
           <BrandLogo />
         </button>
@@ -81,8 +208,11 @@ export default function SiteHeader({
           aria-controls={menuId}
           aria-haspopup="listbox"
           aria-label="Choose a section"
-          onClick={() => setMenuOpen((open) => !open)}
-          className="flex w-full items-center justify-between rounded-full border border-black bg-white px-4 py-2 text-left text-sm font-medium text-black outline-none"
+          onClick={() => {
+            if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+            setMenuOpen((open) => !open);
+          }}
+          className="flex w-full touch-manipulation items-center justify-between rounded-full border border-black bg-white px-4 py-2 text-left text-sm font-medium text-black outline-none"
         >
           <span>{currentLabel(activeCategory)}</span>
           <svg
@@ -94,44 +224,66 @@ export default function SiteHeader({
           </svg>
         </button>
         <ul
+          ref={listRef}
           id={menuId}
           role="listbox"
           aria-label="Sections"
           aria-hidden={!menuOpen}
-          className={`section-dropdown absolute inset-x-0 top-full z-20 mt-2 rounded-[1.75rem] border border-black bg-white py-2 ${
+          inert={!menuOpen}
+          className={`section-dropdown absolute inset-x-0 top-full z-20 mt-2 flex max-h-[70dvh] flex-col gap-1.5 overflow-y-auto overscroll-contain rounded-[19px] border border-black bg-white py-2.5 ${
             menuOpen
-              ? "visible translate-y-0 scale-100 opacity-100"
-              : "invisible pointer-events-none -translate-y-1.5 scale-[0.98] opacity-0"
+              ? "section-dropdown-open visible opacity-100"
+              : "invisible pointer-events-none opacity-0"
           }`}
         >
-          {FILTERS.map((item) => {
+          {FILTERS.map((item, index) => {
             const selected = item.value === activeCategory;
             return (
-              <li key={item.label} role="option" aria-selected={selected}>
+              <li
+                key={item.label}
+                role="option"
+                aria-selected={selected}
+                data-section-option=""
+                className="section-dropdown-item"
+                style={menuOpen ? { animationDelay: `${index * ITEM_STAGGER_MS}ms` } : undefined}
+              >
                 <button
                   type="button"
                   tabIndex={menuOpen ? 0 : -1}
                   onClick={() => selectFilter(item.value)}
-                  className={`mx-2 flex w-[calc(100%-1rem)] items-center rounded-full border px-4 py-2 text-left text-sm font-medium outline-none ${
-                    selected ? "border-black bg-black text-white" : "border-transparent text-black"
-                  }`}
+                  className="relative mx-2 flex w-[calc(100%-1rem)] touch-manipulation items-center rounded-full border border-transparent bg-transparent px-4 py-2 text-left text-sm font-medium text-black outline-none"
                 >
                   {item.label}
                 </button>
               </li>
             );
           })}
-          <li>
+          <li
+            className="section-dropdown-item"
+            style={menuOpen ? { animationDelay: `${FILTERS.length * ITEM_STAGGER_MS}ms` } : undefined}
+          >
             <a
               href={AWL_NSW_ADOPT_URL}
               target="_blank"
               rel="noopener noreferrer"
               tabIndex={menuOpen ? 0 : -1}
-              className="mx-2 flex w-[calc(100%-1rem)] items-center rounded-full border border-transparent px-4 py-2 text-left text-sm font-medium text-black outline-none"
+              className="relative mx-2 flex w-[calc(100%-1rem)] touch-manipulation items-center rounded-full border border-transparent px-4 py-2 text-left text-sm font-medium text-black outline-none"
             >
               Adopt
             </a>
           </li>
+          {pill ? (
+            <li
+              aria-hidden="true"
+              className={`section-dropdown-pill ${pillAnimated ? "section-dropdown-pill-move" : ""}`}
+              style={{
+                top: pill.top,
+                left: pill.left,
+                width: pill.width,
+                height: pill.height,
+              }}
+            />
+          ) : null}
         </ul>
       </div>
 

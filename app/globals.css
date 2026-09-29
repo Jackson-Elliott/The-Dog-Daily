@@ -72,15 +72,64 @@ body {
 /* Mobile section dropdown — fade + slide so open/close isn’t a hard cut.
    See components/SiteHeader.tsx. */
 .section-dropdown {
+  isolation: isolate;
   transform-origin: top center;
+  /* Close is opacity-only so the box doesn’t creep a pixel while fading. */
+  transition:
+    opacity 420ms cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0s linear 420ms;
+}
+
+@keyframes section-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.section-dropdown-open {
+  animation: section-dropdown-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
   transition:
     opacity 280ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
-    visibility 280ms cubic-bezier(0.16, 1, 0.3, 1);
+    visibility 0s;
 }
 
 .section-dropdown-chevron {
   transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.section-dropdown-pill {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+  border-radius: 9999px;
+  background: #fff;
+  mix-blend-mode: difference;
+}
+
+.section-dropdown-pill-move {
+  transition:
+    top 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    left 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    height 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes section-dropdown-item-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.section-dropdown-open > .section-dropdown-item {
+  animation: section-dropdown-item-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Played on a side thumbnail the instant it's tapped, before it's promoted
@@ -141,7 +190,14 @@ body {
 
   .hero-swipe-settle,
   .section-dropdown,
-  .section-dropdown-chevron {
+  .section-dropdown-open,
+  .section-dropdown-chevron,
+  .section-dropdown-pill-move {
     transition: none !important;
+  }
+
+  .section-dropdown-open,
+  .section-dropdown-open > .section-dropdown-item {
+    animation: none !important;
   }
 }
