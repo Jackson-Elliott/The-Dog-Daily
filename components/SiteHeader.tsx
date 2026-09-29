@@ -52,8 +52,8 @@ export default function SiteHeader({
   const [pillAnimated, setPillAnimated] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const overflowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const overflowTimerRef = useRef<number | null>(null);
   const menuId = useId();
 
   useEffect(() => {
@@ -111,13 +111,14 @@ export default function SiteHeader({
   }, [menuOpen]);
 
   useLayoutEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
+    const maybeList = listRef.current;
+    if (!maybeList) return;
+    const menuList: HTMLUListElement = maybeList;
 
     function measurePill() {
-      const selected = list.querySelector<HTMLElement>("[data-section-option][aria-selected='true'] button");
+      const selected = menuList.querySelector<HTMLElement>("[data-section-option][aria-selected='true'] button");
       if (!selected) return;
-      const { top, left } = offsetInAncestor(selected, list);
+      const { top, left } = offsetInAncestor(selected, menuList);
       setPill({
         top,
         left,
@@ -131,16 +132,16 @@ export default function SiteHeader({
       const clear = window.setTimeout(() => {
         setPill(null);
         setPillAnimated(false);
-        list.style.maxHeight = "";
+        menuList.style.maxHeight = "";
       }, CLOSE_MS);
       return () => window.clearTimeout(clear);
     }
 
     function fitList() {
-      const top = list.getBoundingClientRect().top;
+      const top = menuList.getBoundingClientRect().top;
       const viewport = window.visualViewport?.height ?? window.innerHeight;
       const room = Math.max(128, viewport - top - 12);
-      list.style.maxHeight = `${room}px`;
+      menuList.style.maxHeight = `${room}px`;
       measurePill();
     }
 
@@ -153,13 +154,13 @@ export default function SiteHeader({
         if (!cancelled) setPillAnimated(true);
       });
     });
-    list.addEventListener("scroll", measurePill, { passive: true });
+    menuList.addEventListener("scroll", measurePill, { passive: true });
     window.addEventListener("resize", fitList);
     window.visualViewport?.addEventListener("resize", fitList);
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(raf);
-      list.removeEventListener("scroll", measurePill);
+      menuList.removeEventListener("scroll", measurePill);
       window.removeEventListener("resize", fitList);
       window.visualViewport?.removeEventListener("resize", fitList);
     };
