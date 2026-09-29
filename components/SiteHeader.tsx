@@ -52,8 +52,8 @@ export default function SiteHeader({
   const [pillAnimated, setPillAnimated] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
-  const closeTimerRef = useRef<number | null>(null);
-  const overflowTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const overflowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuId = useId();
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function SiteHeader({
     function handlePointerDown(event: PointerEvent) {
       const target = event.target as HTMLElement | null;
       if (!target || menuRef.current?.contains(target)) return;
-      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
       setMenuOpen(false);
       // iOS/Android fire the click on whatever is under the finger after
       // the menu closes — hero, story cards, Day After. Swallow that unless
@@ -91,7 +91,7 @@ export default function SiteHeader({
     }
 
     if (overflowTimerRef.current) {
-      window.clearTimeout(overflowTimerRef.current);
+      clearTimeout(overflowTimerRef.current);
       overflowTimerRef.current = null;
     }
 
@@ -101,7 +101,7 @@ export default function SiteHeader({
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      overflowTimerRef.current = window.setTimeout(() => {
+      overflowTimerRef.current = setTimeout(() => {
         document.body.style.overflow = previousOverflow;
         overflowTimerRef.current = null;
       }, CLOSE_MS);
@@ -115,10 +115,10 @@ export default function SiteHeader({
     if (!maybeList) return;
     const menuList: HTMLUListElement = maybeList;
 
-    function measurePill() {
-      const selected = menuList.querySelector<HTMLElement>("[data-section-option][aria-selected='true'] button");
+    function measurePill(target: HTMLUListElement) {
+      const selected = target.querySelector<HTMLElement>("[data-section-option][aria-selected='true'] button");
       if (!selected) return;
-      const { top, left } = offsetInAncestor(selected, menuList);
+      const { top, left } = offsetInAncestor(selected, target);
       setPill({
         top,
         left,
@@ -128,13 +128,13 @@ export default function SiteHeader({
     }
 
     if (!menuOpen) {
-      measurePill();
-      const clear = window.setTimeout(() => {
+      measurePill(menuList);
+      const clear = setTimeout(() => {
         setPill(null);
         setPillAnimated(false);
         menuList.style.maxHeight = "";
       }, CLOSE_MS);
-      return () => window.clearTimeout(clear);
+      return () => clearTimeout(clear);
     }
 
     function fitList() {
@@ -142,25 +142,29 @@ export default function SiteHeader({
       const viewport = window.visualViewport?.height ?? window.innerHeight;
       const room = Math.max(128, viewport - top - 12);
       menuList.style.maxHeight = `${room}px`;
-      measurePill();
+      measurePill(menuList);
+    }
+
+    function onMenuScroll() {
+      measurePill(menuList);
     }
 
     fitList();
     let cancelled = false;
     const raf = window.requestAnimationFrame(() => {
       if (cancelled) return;
-      measurePill();
+      measurePill(menuList);
       window.requestAnimationFrame(() => {
         if (!cancelled) setPillAnimated(true);
       });
     });
-    menuList.addEventListener("scroll", measurePill, { passive: true });
+    menuList.addEventListener("scroll", onMenuScroll, { passive: true });
     window.addEventListener("resize", fitList);
     window.visualViewport?.addEventListener("resize", fitList);
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(raf);
-      menuList.removeEventListener("scroll", measurePill);
+      menuList.removeEventListener("scroll", onMenuScroll);
       window.removeEventListener("resize", fitList);
       window.visualViewport?.removeEventListener("resize", fitList);
     };
@@ -168,18 +172,18 @@ export default function SiteHeader({
 
   useEffect(() => {
     return () => {
-      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     };
   }, []);
 
   function selectFilter(category: ActiveCategory) {
     onSelectCategory?.(category);
-    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     if (category === activeCategory || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setMenuOpen(false);
       return;
     }
-    closeTimerRef.current = window.setTimeout(() => setMenuOpen(false), PILL_MS);
+    closeTimerRef.current = setTimeout(() => setMenuOpen(false), PILL_MS);
   }
 
   return (
@@ -189,7 +193,7 @@ export default function SiteHeader({
           type="button"
           data-masthead-home=""
           onClick={() => {
-            if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+            if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
             setMenuOpen(false);
             onSelectCategory?.(null);
           }}
@@ -210,7 +214,7 @@ export default function SiteHeader({
           aria-haspopup="listbox"
           aria-label="Choose a section"
           onClick={() => {
-            if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+            if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
             setMenuOpen((open) => !open);
           }}
           className="flex w-full touch-manipulation items-center justify-between rounded-full border border-black bg-white px-4 py-2 text-left text-sm font-medium text-black outline-none"
