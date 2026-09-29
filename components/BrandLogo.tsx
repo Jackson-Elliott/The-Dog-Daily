@@ -11,7 +11,7 @@ const LOGO_ALT = "Animal Welfare League NSW — the dog daily";
  */
 export default function BrandLogo({
   invert = false,
-  className = "h-[3.8rem] w-auto sm:h-[4.75rem]",
+  className = "h-auto w-auto max-h-[3.18rem] max-w-full sm:max-h-[4.75rem]",
 }: {
   invert?: boolean;
   className?: string;
@@ -23,6 +23,9 @@ export default function BrandLogo({
       width={LOGO_WIDTH}
       height={LOGO_HEIGHT}
       priority
+      // Keep the 1713×271 lockup. A fixed height plus a narrower parent
+      // (the password form is max-w-sm) was flattening it.
+      style={{ width: "auto", height: "auto" }}
       className={invert ? `${className} invert` : className}
     />
   );

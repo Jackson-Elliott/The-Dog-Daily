@@ -40,14 +40,6 @@ body {
   display: none;
 }
 
-/* Keep desktop pill padding (12px) on mobile by scaling the whole nav
-   down just enough to stay on one line, instead of tightening px-3. */
-@media (max-width: 639px) {
-  .category-nav-fit {
-    zoom: min(1, calc((100vw - 1rem) / 29.5rem));
-  }
-}
-
 /* Hero "enter" transition, played whenever a new episode becomes the hero
    (Day After/Before, or a thumbnail promoted to hero — see
    components/NewsHomeClient.tsx). The wrapper is remounted (fresh `key`)
@@ -74,6 +66,20 @@ body {
 /* Finishes a mobile hero swipe after the finger lifts — same ease family as
    .hero-enter, shorter so the card can travel a full width without dragging. */
 .hero-swipe-settle {
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Mobile section dropdown — fade + slide so open/close isn’t a hard cut.
+   See components/SiteHeader.tsx. */
+.section-dropdown {
+  transform-origin: top center;
+  transition:
+    opacity 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.section-dropdown-chevron {
   transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -133,7 +139,9 @@ body {
     animation: none !important;
   }
 
-  .hero-swipe-settle {
+  .hero-swipe-settle,
+  .section-dropdown,
+  .section-dropdown-chevron {
     transition: none !important;
   }
 }

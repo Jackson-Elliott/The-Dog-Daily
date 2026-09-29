@@ -63,7 +63,9 @@ export default function StoryCard({
               className={
                 playInPlace
                   ? `object-cover transition-[filter] duration-300 ${
-                      isPlaying ? "grayscale-0" : "grayscale group-hover:grayscale-0"
+                      isPlaying
+                        ? "grayscale-0"
+                        : "lg:grayscale lg:group-hover:grayscale-0"
                     }`
                   : "object-cover grayscale transition hover:opacity-90"
               }
