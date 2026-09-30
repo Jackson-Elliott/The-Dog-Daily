@@ -1,8 +1,8 @@
 import Image from "next/image";
 
-const LOGO_SRC = "/images/The Dog Daily_NEW NEW Logo.png";
-const LOGO_WIDTH = 1713;
-const LOGO_HEIGHT = 271;
+const LOGO_SRC = "/images/The Dog Daily_NEW NEW Logo_Thicker.png";
+const LOGO_WIDTH = 1631;
+const LOGO_HEIGHT = 259;
 const LOGO_ALT = "Animal Welfare League NSW — the dog daily";
 
 /**
@@ -23,7 +23,7 @@ export default function BrandLogo({
       width={LOGO_WIDTH}
       height={LOGO_HEIGHT}
       priority
-      // Keep the 1713×271 lockup. A fixed height plus a narrower parent
+      // Keep the 1631×259 lockup. A fixed height plus a narrower parent
       // (the password form is max-w-sm) was flattening it.
       style={{ width: "auto", height: "auto" }}
       className={invert ? `${className} invert` : className}

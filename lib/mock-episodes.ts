@@ -108,7 +108,7 @@ export const mockEpisodes: Episode[] = [
     sourceUrl:
       "https://au.rollingstone.com/music/music-news/stella-lefty-fifth-plagiarism-claim-over-teenage-dirtbag-similarities-100873/",
     headline: "Dogs never copy another dog's bark",
-    category: "Arts",
+    category: "Culture",
     photoUrl:
       "https://images.thebrag.com/cdn-cgi/image/fit=crop,width=1200,height=628/https://images-r2-1.thebrag.com/rs/uploads/2026/09/teenage-dirtbag-stella-lefty.webp",
     published: true,

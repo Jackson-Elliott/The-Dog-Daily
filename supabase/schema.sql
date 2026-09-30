@@ -9,7 +9,7 @@ create table if not exists episodes (
   headline text,
   photo_url text,
   -- One of the curated CATEGORIES in lib/categories.ts (e.g. "News",
-  -- "Technology", "Culture", "Arts"), used to filter the header nav tabs.
+  -- "Sports", "Culture"), used to filter the header nav tabs.
   -- Nullable/uncategorized episodes just show under "All".
   category text,
   -- Manual draft/published switch (see types/episode.ts). Existing rows

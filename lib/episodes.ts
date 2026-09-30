@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { AUDIO_BUCKET, PHOTOS_BUCKET, getSupabaseAdminClient } from "@/lib/supabase";
 import { mockEpisodes } from "@/lib/mock-episodes";
 import { publishedEpisodes, sortEpisodesByAirDate } from "@/lib/format";
+import { normalizeCategory } from "@/lib/categories";
 import type { Episode } from "@/types/episode";
 
 /**
@@ -24,7 +25,10 @@ let mockEpisodeStore: Episode[] | null = null;
 
 function getMockEpisodeStore(): Episode[] {
   if (!mockEpisodeStore) {
-    mockEpisodeStore = mockEpisodes.map((episode) => ({ ...episode }));
+    mockEpisodeStore = mockEpisodes.map((episode) => ({
+      ...episode,
+      category: normalizeCategory(episode.category),
+    }));
   }
   return mockEpisodeStore;
 }
@@ -51,7 +55,7 @@ function rowToEpisode(row: EpisodeRow): Episode {
     sourceUrl: row.source_url,
     headline: row.headline,
     photoUrl: row.photo_url,
-    category: row.category,
+    category: normalizeCategory(row.category),
     published: row.published !== false,
     createdAt: row.created_at,
   };
@@ -77,7 +81,19 @@ async function listEpisodesFromSupabase(): Promise<Episode[]> {
     throw new Error(`Failed to load episodes: ${error.message}`);
   }
 
-  return (data as EpisodeRow[]).map(rowToEpisode);
+  const rows = data as EpisodeRow[];
+  const retired = rows.filter((row) => row.category === "Arts" || row.category === "Art");
+  if (retired.length > 0) {
+    const { error: mergeError } = await supabase
+      .from("episodes")
+      .update({ category: "Culture" })
+      .in("id", retired.map((row) => row.id));
+    if (mergeError) {
+      console.error(`Failed to merge Arts into Culture: ${mergeError.message}`);
+    }
+  }
+
+  return rows.map(rowToEpisode);
 }
 
 const EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
