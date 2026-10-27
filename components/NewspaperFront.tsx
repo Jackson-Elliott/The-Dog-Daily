@@ -324,7 +324,7 @@ function HomeCategorySection({
 }
 
 function homeSections(episodes: Episode[]): { title: string; category?: Category; episodes: Episode[] }[] {
-  const sections = CATEGORIES.map((category) => ({
+  const sections: { title: string; category?: Category; episodes: Episode[] }[] = CATEGORIES.map((category) => ({
     title: category,
     category,
     episodes: episodes.filter((episode) => episode.category === category).slice(0, HOME_SECTION_LIMIT),
