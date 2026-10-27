@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Episode } from "@/types/episode";
 import { ALL_VIEW, type ActiveCategory } from "@/lib/categories";
+import type { DesignId } from "@/lib/design";
+import StorySections from "@/components/StorySections";
+import NewspaperFront from "@/components/NewspaperFront";
 import SiteHeader from "@/components/SiteHeader";
 import StoryCard from "@/components/StoryCard";
 import AllStoriesGrid from "@/components/AllStoriesGrid";
@@ -10,6 +13,7 @@ import HeroStory from "@/components/HeroStory";
 import AudioWave from "@/components/AudioWave";
 import DayNav from "@/components/DayNav";
 import SiteFooter from "@/components/SiteFooter";
+import type { Imagery } from "@/lib/imagery";
 
 // Keep in sync with the .story-launch animation-duration in app/globals.css —
 // the actual hero swap is deferred until the launch animation finishes.
@@ -27,7 +31,15 @@ const STORY_CARD_INTRO_DELAY_MS = 180;
 // Extra stagger (ms) between the two cards within a single column.
 const INTRO_CARD_STAGGER_MS = 150;
 
-export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
+export default function NewsHomeClient({
+  episodes,
+  design = 1,
+  imagery = "photos",
+}: {
+  episodes: Episode[];
+  design?: DesignId;
+  imagery?: Imagery;
+}) {
   const [heroIndex, setHeroIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   // Shared with AudioWave so it can attach a Web Audio AnalyserNode to the
@@ -74,10 +86,16 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
     setIsPlaying(false);
   }
 
+  const navStyle = design === 3 ? "newspaper" : design === 2 ? "bbc" : "pill";
+
   if (visibleEpisodes.length === 0) {
     return (
       <div className="flex min-h-screen flex-col">
-        <SiteHeader activeCategory={activeCategory} onSelectCategory={selectCategory} />
+        <SiteHeader
+          activeCategory={activeCategory}
+          onSelectCategory={selectCategory}
+          navStyle={navStyle}
+        />
         <div className="px-4 py-16 text-center text-neutral-500">
           <p>
             {episodes.length === 0
@@ -87,7 +105,7 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
                 : "No episodes in this category yet."}
           </p>
         </div>
-        <SiteFooter />
+        <SiteFooter imagery={imagery} />
       </div>
     );
   }
@@ -95,11 +113,11 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
   if (isAllView) {
     return (
       <div className="flex min-h-screen flex-col">
-        <SiteHeader activeCategory={activeCategory} onSelectCategory={selectCategory} />
+        <SiteHeader activeCategory={activeCategory} onSelectCategory={selectCategory} navStyle={navStyle} />
         <main className="mx-auto w-full max-w-5xl px-4 py-6">
-          <AllStoriesGrid episodes={visibleEpisodes} />
+          <AllStoriesGrid episodes={visibleEpisodes} fullColour={design === 2} />
         </main>
-        <SiteFooter />
+        <SiteFooter imagery={imagery} />
       </div>
     );
   }
@@ -168,9 +186,10 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SiteHeader activeCategory={activeCategory} onSelectCategory={selectCategory} />
+      <SiteHeader activeCategory={activeCategory} onSelectCategory={selectCategory} navStyle={navStyle} />
 
-      <main className="mx-auto w-full max-w-5xl px-4 py-6">
+      {/* Designs 2 and 3 replace this hero block on desktop with their own layouts. */}
+      <main className={`mx-auto w-full max-w-5xl px-4 py-6 ${design !== 1 ? "lg:hidden" : ""}`}>
         <div className="grid grid-cols-1 gap-x-6 gap-y-6 lg:grid-cols-[1fr_2fr_1fr]">
           {leftCards.length > 0 ? (
             <div className="hidden lg:block">
@@ -255,7 +274,28 @@ export default function NewsHomeClient({ episodes }: { episodes: Episode[] }) {
         </div>
       </main>
 
-      <SiteFooter />
+      {design === 2 ? (
+        <StorySections
+          episodes={visibleEpisodes}
+          activeCategory={activeCategory as Exclude<ActiveCategory, typeof ALL_VIEW>}
+          onSelectCategory={(category) => {
+            selectCategory(category);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
+      ) : null}
+      {design === 3 ? (
+        <NewspaperFront
+          episodes={visibleEpisodes}
+          home={activeCategory === null}
+          onSelectCategory={(category) => {
+            selectCategory(category);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
+      ) : null}
+
+      <SiteFooter imagery={imagery} />
     </div>
   );
 }

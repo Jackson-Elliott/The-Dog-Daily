@@ -3,6 +3,8 @@ import type { CSSProperties } from "react";
 import type { Episode } from "@/types/episode";
 import { formatEpisodeDate } from "@/lib/format";
 import TypesetHeadline from "@/components/TypesetHeadline";
+import { ListenLabel, StoryKicker } from "@/components/StoryLabels";
+import InlinePlayer from "@/components/InlinePlayer";
 
 /** How far (px) the card slides toward center while launching. */
 const LAUNCH_DISTANCE_PX = 18;
@@ -21,6 +23,10 @@ export default function StoryCard({
   introDelayMs = 0,
   playInPlace = false,
   isPlaying = false,
+  isActive = false,
+  currentTime = 0,
+  duration = 0,
+  fullColour = false,
   onSelect,
 }: {
   episode: Episode;
@@ -38,6 +44,11 @@ export default function StoryCard({
   /** On All, click plays audio here instead of promoting the card to the hero. */
   playInPlace?: boolean;
   isPlaying?: boolean;
+  isActive?: boolean;
+  currentTime?: number;
+  duration?: number;
+  /** Design 2's All tab: photos stay in colour; hover enlarges the play button and underlines the headline. */
+  fullColour?: boolean;
   onSelect: (id: string, side: "left" | "right") => void;
 }) {
   const headline = episode.headline ?? episode.scriptName;
@@ -53,6 +64,7 @@ export default function StoryCard({
         style={{ "--story-launch-x": `${launchX}px` } as CSSProperties}
         className={`group block w-full text-left ${isLaunching ? "story-launch" : ""}`}
       >
+        {fullColour ? <StoryKicker episode={episode} className="mb-2 hidden lg:block" /> : null}
         <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-500">
           {episode.photoUrl ? (
             <Image
@@ -63,18 +75,26 @@ export default function StoryCard({
               draggable={false}
               className={
                 playInPlace
-                  ? `object-cover transition-[filter] duration-300 ${
-                      isPlaying
-                        ? "grayscale-0"
-                        : "lg:grayscale lg:group-hover:grayscale-0"
-                    }`
+                  ? fullColour
+                    ? "object-cover"
+                    : `object-cover transition-[filter] duration-300 ${
+                        isPlaying
+                          ? "grayscale-0"
+                          : "lg:grayscale lg:group-hover:grayscale-0"
+                      }`
                   : "object-cover grayscale transition hover:opacity-90"
               }
             />
           ) : null}
           {playInPlace ? (
             <span
-              className="pointer-events-none absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white"
+              className={`pointer-events-none absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-white ${
+                fullColour
+                  ? `transition duration-200 lg:group-hover:scale-110 lg:group-hover:bg-black/70 ${
+                      isPlaying ? "bg-black/40 lg:bg-black/70" : "bg-black/40"
+                    }`
+                  : "bg-black/40"
+              }`}
               aria-hidden="true"
             >
               {isPlaying ? (
@@ -92,13 +112,27 @@ export default function StoryCard({
         </div>
         {/* BBC-style caption: sits below the photo (not overlaid on it). */}
         <p
-          className={`headline-font mt-2 font-semibold text-black ${
-            playInPlace ? "text-[1.09375rem] lg:text-sm" : "text-sm"
+          className={`headline-font mt-2 text-black ${
+            fullColour
+              ? "font-semibold text-[1.09375rem] lg:text-base lg:font-[450] lg:tracking-[-0.01em] lg:group-hover:underline"
+              : playInPlace
+                ? "font-semibold text-[1.09375rem] lg:text-sm"
+                : "font-semibold text-sm"
           }`}
         >
           <TypesetHeadline text={headline} />
         </p>
+        {fullColour ? <ListenLabel isPlaying={isPlaying} className="mt-1 hidden lg:block" /> : null}
       </button>
+      {fullColour && isActive ? (
+        <InlinePlayer
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          duration={duration}
+          onToggle={() => onSelect(episode.id, side)}
+          className="hidden lg:flex"
+        />
+      ) : null}
       <p className="mt-1 text-xs text-neutral-500">{formatEpisodeDate(episode.airDate)}</p>
     </div>
   );

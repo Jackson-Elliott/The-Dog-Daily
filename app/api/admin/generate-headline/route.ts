@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { generateJokeHeadline } from "@/lib/generate-headline";
 
 /**
- * Admin-only (guarded by proxy.ts): rewrite a real news headline as a short
- * "Dogs would never..." style joke punchline via an LLM. Called after scraping
- * a story, and again whenever the admin wants a fresh alternative.
+ * Admin-only (guarded by proxy.ts): tighten a scraped news headline into a
+ * short, intriguing homepage line via an LLM. Called after scraping a story,
+ * and again whenever the admin wants a fresh alternative.
  */
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));

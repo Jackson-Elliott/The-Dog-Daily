@@ -3,10 +3,12 @@
 import { useState, type FormEvent } from "react";
 import type { Episode } from "@/types/episode";
 import { CATEGORIES } from "@/lib/categories";
+import { DEFAULT_STORY_LEVEL, type StoryLevel } from "@/lib/levels";
 import { formatEpisodeDate, isScheduledDraft, todayInSydney } from "@/lib/format";
 import AdminAudioDropzone from "@/components/AdminAudioDropzone";
 import AdminCoverPicker from "@/components/AdminCoverPicker";
 import AdminPublishSwitch from "@/components/AdminPublishSwitch";
+import AdminStoryDetails from "@/components/AdminStoryDetails";
 import AdminTextInput from "@/components/AdminTextInput";
 import {
   adminFieldClass,
@@ -19,6 +21,7 @@ import {
 
 interface ScrapedStory {
   headline: string | null;
+  description: string | null;
   imageUrl: string | null;
 }
 
@@ -33,6 +36,9 @@ export default function AdminUploadForm({
   const [realHeadline, setRealHeadline] = useState("");
   const [headline, setHeadline] = useState("");
   const [category, setCategory] = useState("");
+  const [subcategory, setSubcategory] = useState("");
+  const [summary, setSummary] = useState("");
+  const [level, setLevel] = useState<StoryLevel>(DEFAULT_STORY_LEVEL);
   const [published, setPublished] = useState(true);
   const [photoImageUrl, setPhotoImageUrl] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -64,8 +70,8 @@ export default function AdminUploadForm({
       setHeadline(real);
       setHeadlineNotice(
         err instanceof Error
-          ? `Couldn't auto-draft a joke headline (${err.message}). Using the real headline — edit it by hand.`
-          : "Couldn't auto-draft a joke headline. Using the real headline — edit it by hand."
+          ? `Couldn't auto-draft a headline (${err.message}). Using the real headline — edit it by hand.`
+          : "Couldn't auto-draft a headline. Using the real headline — edit it by hand."
       );
     } finally {
       setIsGeneratingHeadline(false);
@@ -86,6 +92,7 @@ export default function AdminUploadForm({
       if (!response.ok) throw new Error(body.error ?? "Could not fetch that story.");
       const story = body as ScrapedStory;
       setRealHeadline(story.headline ?? "");
+      if (story.description) setSummary(story.description);
       setPhotoFile(null);
       setPhotoImageUrl(story.imageUrl ?? null);
       if (story.headline) {
@@ -117,6 +124,9 @@ export default function AdminUploadForm({
       formData.set("sourceUrl", sourceUrl);
       formData.set("headline", headline);
       formData.set("category", category);
+      formData.set("subcategory", subcategory);
+      formData.set("summary", summary);
+      formData.set("level", level);
       formData.set("published", published ? "true" : "false");
       if (photoFile) formData.set("photoFile", photoFile);
       else if (photoImageUrl) formData.set("photoImageUrl", photoImageUrl);
@@ -145,6 +155,9 @@ export default function AdminUploadForm({
       setHeadline("");
       setHeadlineNotice(null);
       setCategory("");
+      setSubcategory("");
+      setSummary("");
+      setLevel(DEFAULT_STORY_LEVEL);
       setPublished(true);
       setPhotoImageUrl(null);
       setPhotoFile(null);
@@ -251,7 +264,10 @@ export default function AdminUploadForm({
         <select
           id="upload-category"
           value={category}
-          onChange={(event) => setCategory(event.target.value)}
+          onChange={(event) => {
+            setCategory(event.target.value);
+            setSubcategory("");
+          }}
           className={adminFieldClass}
         >
           <option value="">Uncategorized (only shows under &quot;Home&quot;)</option>
@@ -262,6 +278,17 @@ export default function AdminUploadForm({
           ))}
         </select>
       </div>
+
+      <AdminStoryDetails
+        idPrefix="upload"
+        category={category}
+        subcategory={subcategory}
+        summary={summary}
+        level={level}
+        onLevelChange={setLevel}
+        onSubcategoryChange={setSubcategory}
+        onSummaryChange={setSummary}
+      />
 
       <AdminPublishSwitch id="upload-published" published={published} onChange={setPublished} />
       {published && isScheduledDraft(airDate) ? (

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { deleteEpisode, updateEpisode } from "@/lib/episodes";
 import { CATEGORIES } from "@/lib/categories";
+import { normalizeStoryLevel } from "@/lib/levels";
 
 function parseOptionalText(value: FormDataEntryValue | null): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
@@ -37,6 +38,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         typeof category === "string" && (CATEGORIES as readonly string[]).includes(category)
           ? category
           : null,
+      subcategory: parseOptionalText(formData.get("subcategory")),
+      summary: parseOptionalText(formData.get("summary")),
+      level: normalizeStoryLevel(formData.get("level")),
       photoImageUrl: parseOptionalText(photoImageUrl),
       photoFile: photoFile instanceof File && photoFile.size > 0 ? photoFile : null,
       audioFile: audioFile instanceof File && audioFile.size > 0 ? audioFile : null,

@@ -3,10 +3,13 @@
 import { useState, type FormEvent } from "react";
 import type { Episode } from "@/types/episode";
 import { CATEGORIES } from "@/lib/categories";
+import type { StoryLevel } from "@/lib/levels";
 import { isScheduledDraft } from "@/lib/format";
 import AdminAudioDropzone from "@/components/AdminAudioDropzone";
 import AdminCoverPicker from "@/components/AdminCoverPicker";
+import AdminGeneratedImages from "@/components/AdminGeneratedImages";
 import AdminPublishSwitch from "@/components/AdminPublishSwitch";
+import AdminStoryDetails from "@/components/AdminStoryDetails";
 import AdminTextInput from "@/components/AdminTextInput";
 import {
   adminFieldClass,
@@ -19,16 +22,20 @@ import {
 
 interface ScrapedStory {
   headline: string | null;
+  description: string | null;
   imageUrl: string | null;
 }
 
 export default function AdminEpisodeEditor({
   episode,
   onSaved,
+  onImagesUpdated,
   onCancel,
 }: {
   episode: Episode;
   onSaved: (episode: Episode) => void;
+  /** A generated image was saved; the editor stays open. */
+  onImagesUpdated: (episode: Episode) => void;
   onCancel: () => void;
 }) {
   const [scriptName, setScriptName] = useState(episode.scriptName);
@@ -37,6 +44,9 @@ export default function AdminEpisodeEditor({
   const [realHeadline, setRealHeadline] = useState("");
   const [headline, setHeadline] = useState(episode.headline ?? "");
   const [category, setCategory] = useState(episode.category ?? "");
+  const [subcategory, setSubcategory] = useState(episode.subcategory ?? "");
+  const [summary, setSummary] = useState(episode.summary ?? "");
+  const [level, setLevel] = useState<StoryLevel>(episode.level);
   const [published, setPublished] = useState(episode.published);
   const [photoImageUrl, setPhotoImageUrl] = useState<string | null>(episode.photoUrl);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -65,8 +75,8 @@ export default function AdminEpisodeEditor({
       setHeadline(real);
       setHeadlineNotice(
         err instanceof Error
-          ? `Couldn't auto-draft a joke headline (${err.message}). Using the real headline — edit it by hand.`
-          : "Couldn't auto-draft a joke headline. Using the real headline — edit it by hand.",
+          ? `Couldn't auto-draft a headline (${err.message}). Using the real headline — edit it by hand.`
+          : "Couldn't auto-draft a headline. Using the real headline — edit it by hand.",
       );
     } finally {
       setIsGeneratingHeadline(false);
@@ -87,6 +97,7 @@ export default function AdminEpisodeEditor({
       if (!response.ok) throw new Error(body.error ?? "Could not fetch that story.");
       const story = body as ScrapedStory;
       setRealHeadline(story.headline ?? "");
+      if (story.description && !summary.trim()) setSummary(story.description);
       setPhotoFile(null);
       setPhotoImageUrl(story.imageUrl ?? photoImageUrl);
       if (story.headline) {
@@ -110,6 +121,9 @@ export default function AdminEpisodeEditor({
       formData.set("sourceUrl", sourceUrl);
       formData.set("headline", headline);
       formData.set("category", category);
+      formData.set("subcategory", subcategory);
+      formData.set("summary", summary);
+      formData.set("level", level);
       formData.set("published", published ? "true" : "false");
       if (photoFile) formData.set("photoFile", photoFile);
       else if (photoImageUrl) formData.set("photoImageUrl", photoImageUrl);
@@ -221,7 +235,10 @@ export default function AdminEpisodeEditor({
         <select
           id="edit-category"
           value={category}
-          onChange={(event) => setCategory(event.target.value)}
+          onChange={(event) => {
+            setCategory(event.target.value);
+            setSubcategory("");
+          }}
           className={adminFieldClass}
         >
           <option value="">Uncategorized (only shows under &quot;Home&quot;)</option>
@@ -232,6 +249,17 @@ export default function AdminEpisodeEditor({
           ))}
         </select>
       </div>
+
+      <AdminStoryDetails
+        idPrefix="edit"
+        category={category}
+        subcategory={subcategory}
+        summary={summary}
+        level={level}
+        onLevelChange={setLevel}
+        onSubcategoryChange={setSubcategory}
+        onSummaryChange={setSummary}
+      />
 
       <AdminPublishSwitch id="edit-published" published={published} onChange={setPublished} />
       {published && isScheduledDraft(airDate) ? (
@@ -249,6 +277,8 @@ export default function AdminEpisodeEditor({
         file={photoFile}
         onFile={setPhotoFile}
       />
+
+      <AdminGeneratedImages episode={episode} onUpdated={onImagesUpdated} />
 
       <AdminAudioDropzone
         id="edit-audio"

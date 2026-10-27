@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
 import NewsHomeClient from "@/components/NewsHomeClient";
+import { DESIGN_COOKIE, parseDesign } from "@/lib/design";
+import { IMAGERY_COOKIE, imageForImagery, parseImagery } from "@/lib/imagery";
 import { listEpisodes } from "@/lib/episodes";
 import type { Episode } from "@/types/episode";
 
@@ -25,5 +28,9 @@ export default async function HomePage() {
     );
   }
 
-  return <NewsHomeClient episodes={episodes} />;
+  const cookieStore = await cookies();
+  const design = parseDesign(cookieStore.get(DESIGN_COOKIE)?.value);
+  const imagery = parseImagery(cookieStore.get(IMAGERY_COOKIE)?.value);
+  const shown = episodes.map((episode) => ({ ...episode, photoUrl: imageForImagery(episode, imagery) }));
+  return <NewsHomeClient episodes={shown} design={design} imagery={imagery} />;
 }

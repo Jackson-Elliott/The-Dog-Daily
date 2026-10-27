@@ -2,7 +2,9 @@ import crypto from "crypto";
 import { AUDIO_BUCKET, PHOTOS_BUCKET, getSupabaseAdminClient } from "@/lib/supabase";
 import { mockEpisodes } from "@/lib/mock-episodes";
 import { publishedEpisodes, sortEpisodesByAirDate } from "@/lib/format";
-import { normalizeCategory } from "@/lib/categories";
+import { normalizeCategory, normalizeSubcategory } from "@/lib/categories";
+import { normalizeStoryLevel, type StoryLevel } from "@/lib/levels";
+import type { GeneratedImageStyle } from "@/lib/imagery";
 import type { Episode } from "@/types/episode";
 
 /**
@@ -25,10 +27,18 @@ let mockEpisodeStore: Episode[] | null = null;
 
 function getMockEpisodeStore(): Episode[] {
   if (!mockEpisodeStore) {
-    mockEpisodeStore = mockEpisodes.map((episode) => ({
-      ...episode,
-      category: normalizeCategory(episode.category),
-    }));
+    mockEpisodeStore = mockEpisodes.map((episode) => {
+      const category = normalizeCategory(episode.category);
+      return {
+        ...episode,
+        category,
+        subcategory: normalizeSubcategory(category, episode.subcategory),
+        summary: episode.summary ?? null,
+        level: normalizeStoryLevel(episode.level),
+        illustrationUrl: episode.illustrationUrl ?? null,
+        collageUrl: episode.collageUrl ?? null,
+      };
+    });
   }
   return mockEpisodeStore;
 }
@@ -41,12 +51,18 @@ interface EpisodeRow {
   source_url: string | null;
   headline: string | null;
   photo_url: string | null;
+  illustration_url?: string | null;
+  collage_url?: string | null;
   category: string | null;
+  subcategory?: string | null;
+  summary?: string | null;
+  level?: string | null;
   published?: boolean | null;
   created_at: string;
 }
 
 function rowToEpisode(row: EpisodeRow): Episode {
+  const category = normalizeCategory(row.category);
   return {
     id: row.id,
     scriptName: row.script_name,
@@ -55,7 +71,12 @@ function rowToEpisode(row: EpisodeRow): Episode {
     sourceUrl: row.source_url,
     headline: row.headline,
     photoUrl: row.photo_url,
-    category: normalizeCategory(row.category),
+    illustrationUrl: row.illustration_url ?? null,
+    collageUrl: row.collage_url ?? null,
+    category,
+    subcategory: normalizeSubcategory(category, row.subcategory),
+    summary: row.summary ?? null,
+    level: normalizeStoryLevel(row.level),
     published: row.published !== false,
     createdAt: row.created_at,
   };
@@ -93,6 +114,17 @@ async function listEpisodesFromSupabase(): Promise<Episode[]> {
     }
   }
 
+  const soccer = rows.filter((row) => row.subcategory === "Soccer");
+  if (soccer.length > 0) {
+    const { error: mergeError } = await supabase
+      .from("episodes")
+      .update({ subcategory: "Football" })
+      .in("id", soccer.map((row) => row.id));
+    if (mergeError) {
+      console.error(`Failed to rename Soccer to Football: ${mergeError.message}`);
+    }
+  }
+
   return rows.map(rowToEpisode);
 }
 
@@ -126,6 +158,9 @@ export interface CreateEpisodeInput {
   headline: string | null;
   /** One of the curated CATEGORIES in lib/categories.ts, or null if unset. */
   category: string | null;
+  subcategory: string | null;
+  summary: string | null;
+  level: StoryLevel;
   /** Remote URL of a scraped news photo to download and re-host in our own storage. */
   photoImageUrl: string | null;
   /** Local cover image chosen in admin; takes precedence over photoImageUrl. */
@@ -140,6 +175,9 @@ export interface UpdateEpisodeInput {
   sourceUrl: string | null;
   headline: string | null;
   category: string | null;
+  subcategory: string | null;
+  summary: string | null;
+  level: StoryLevel;
   /**
    * If set and different from the current photo, this URL is downloaded and
    * re-hosted (or stored as-is in mock mode). Pass the existing photo URL to
@@ -237,6 +275,9 @@ export async function createEpisode(input: CreateEpisodeInput): Promise<Episode>
     source_url: input.sourceUrl,
     headline: input.headline,
     category: input.category,
+    subcategory: normalizeSubcategory(input.category, input.subcategory),
+    summary: input.summary,
+    level: input.level,
     photo_url: photoUrl,
     published: input.published,
   };
@@ -271,6 +312,9 @@ export async function updateEpisode(id: string, input: UpdateEpisodeInput): Prom
       sourceUrl: input.sourceUrl,
       headline: input.headline,
       category: input.category,
+      subcategory: normalizeSubcategory(input.category, input.subcategory),
+      summary: input.summary,
+      level: input.level,
       published: input.published,
       photoUrl: input.photoFile
         ? await fileToDataUrl(input.photoFile)
@@ -301,6 +345,9 @@ export async function updateEpisode(id: string, input: UpdateEpisodeInput): Prom
     source_url: input.sourceUrl,
     headline: input.headline,
     category: input.category,
+    subcategory: normalizeSubcategory(input.category, input.subcategory),
+    summary: input.summary,
+    level: input.level,
     published: input.published,
   };
 
@@ -324,6 +371,43 @@ export async function updateEpisode(id: string, input: UpdateEpisodeInput): Prom
     throw new Error(`Failed to update episode: ${error.message}`);
   }
 
+  return rowToEpisode(data as EpisodeRow);
+}
+
+export async function getEpisode(id: string): Promise<Episode | null> {
+  if (isMockEpisodesEnabled()) {
+    return getMockEpisodeStore().find((episode) => episode.id === id) ?? null;
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase.from("episodes").select("*").eq("id", id).maybeSingle();
+  if (error) {
+    throw new Error(`Failed to load episode: ${error.message}`);
+  }
+  return data ? rowToEpisode(data as EpisodeRow) : null;
+}
+
+/** Saves the URL of a freshly generated AI image onto the story. */
+export async function setGeneratedImage(id: string, style: GeneratedImageStyle, url: string): Promise<Episode> {
+  if (isMockEpisodesEnabled()) {
+    const store = getMockEpisodeStore();
+    const index = store.findIndex((episode) => episode.id === id);
+    if (index === -1) throw new Error("Episode not found.");
+    store[index] = { ...store[index], [style === "illustration" ? "illustrationUrl" : "collageUrl"]: url };
+    return store[index];
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const column = style === "illustration" ? "illustration_url" : "collage_url";
+  const { data, error } = await supabase
+    .from("episodes")
+    .update({ [column]: url })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) {
+    throw new Error(`Failed to save generated image: ${error.message}`);
+  }
   return rowToEpisode(data as EpisodeRow);
 }
 

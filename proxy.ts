@@ -10,6 +10,8 @@ const ADMIN_API_PREFIXES = [
   "/api/admin/episodes",
   "/api/admin/scrape",
   "/api/admin/generate-headline",
+  "/api/admin/design",
+  "/api/admin/imagery",
 ];
 
 function isAdminApi(pathname: string): boolean {

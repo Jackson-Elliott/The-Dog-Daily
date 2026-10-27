@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createEpisode } from "@/lib/episodes";
 import { CATEGORIES } from "@/lib/categories";
+import { normalizeStoryLevel } from "@/lib/levels";
+
+function optionalText(value: FormDataEntryValue | null): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
 
 /** Admin-only (guarded by proxy.ts): create a new episode. */
 export async function POST(request: Request) {
@@ -35,6 +40,9 @@ export async function POST(request: Request) {
         typeof category === "string" && (CATEGORIES as readonly string[]).includes(category)
           ? category
           : null,
+      subcategory: optionalText(formData.get("subcategory")),
+      summary: optionalText(formData.get("summary")),
+      level: normalizeStoryLevel(formData.get("level")),
       photoImageUrl:
         typeof photoImageUrl === "string" && photoImageUrl.trim() ? photoImageUrl.trim() : null,
       photoFile: photoFile instanceof File && photoFile.size > 0 ? photoFile : null,

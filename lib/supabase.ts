@@ -12,6 +12,7 @@ function requireEnv(name: string): string {
 
 export const AUDIO_BUCKET = "audio";
 export const PHOTOS_BUCKET = "photos";
+export const GENERATED_IMAGES_BUCKET = "generated-images";
 
 /**
  * Server-only Supabase client authenticated with the service role key.

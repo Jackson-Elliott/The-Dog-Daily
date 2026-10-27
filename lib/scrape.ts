@@ -2,6 +2,8 @@ import * as cheerio from "cheerio";
 
 export interface ScrapedStory {
   headline: string | null;
+  /** The article's own share description, used to pre-fill the summary field. */
+  description: string | null;
   imageUrl: string | null;
   sourceUrl: string;
 }
@@ -54,8 +56,15 @@ export async function scrapeStory(url: string): Promise<ScrapedStory> {
     $('meta[name="twitter:image"]').attr("content") ||
     undefined;
 
+  const description =
+    $('meta[property="og:description"]').attr("content")?.trim() ||
+    $('meta[name="twitter:description"]').attr("content")?.trim() ||
+    $('meta[name="description"]').attr("content")?.trim() ||
+    null;
+
   return {
     headline,
+    description,
     imageUrl: absolutize(rawImage, url),
     sourceUrl: url,
   };

@@ -5,9 +5,18 @@ import { ALL_VIEW, CATEGORIES, type ActiveCategory } from "@/lib/categories";
 import BrandLogo from "@/components/BrandLogo";
 
 const AWL_NSW_ADOPT_URL = "https://www.awlnsw.com.au/adopt/";
+const AWL_NSW_ANIMALS_URL = "https://www.awlnsw.com.au/animals/";
 const ITEM_STAGGER_MS = 30;
 const PILL_MS = 280;
 const CLOSE_MS = 420;
+
+const DATELINE_FORMAT = new Intl.DateTimeFormat("en-AU", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "Australia/Sydney",
+});
 
 const FILTERS: { label: string; value: ActiveCategory }[] = [
   { label: "Home", value: null },
@@ -41,10 +50,18 @@ function offsetInAncestor(element: HTMLElement, ancestor: HTMLElement) {
 export default function SiteHeader({
   activeCategory = null,
   onSelectCategory,
+  navStyle = "pill",
 }: {
   activeCategory?: ActiveCategory;
   onSelectCategory?: (category: ActiveCategory) => void;
+  /**
+   * Desktop nav look: "pill" (Design 1), "bbc" (Design 2, red bar under the
+   * active tab) or "newspaper" (Design 3, dateline strip). Mobile is unchanged.
+   */
+  navStyle?: "pill" | "bbc" | "newspaper";
 }) {
+  const newspaper = navStyle === "newspaper";
+  const bbc = navStyle === "bbc";
   const [menuOpen, setMenuOpen] = useState(false);
   const [pill, setPill] = useState<{ top: number; left: number; width: number; height: number } | null>(
     null,
@@ -188,7 +205,13 @@ export default function SiteHeader({
 
   return (
     <header className="mx-auto w-full max-w-5xl px-4 pt-6 sm:pt-8">
-      <div className="flex justify-center py-1">
+      <div className="relative flex justify-center py-1">
+        <p
+          suppressHydrationWarning
+          className="absolute left-0 top-0 hidden max-w-[9.5rem] font-sans text-[10px] leading-snug text-neutral-700 lg:block sm:max-w-none sm:text-[11px]"
+        >
+          {DATELINE_FORMAT.format(new Date())}
+        </p>
         <button
           type="button"
           data-masthead-home=""
@@ -202,9 +225,17 @@ export default function SiteHeader({
         >
           <BrandLogo />
         </button>
+        <a
+          href={AWL_NSW_ANIMALS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute right-0 top-0 max-w-[9.5rem] text-right text-[10px] font-medium leading-snug text-neutral-700 hover:underline sm:max-w-none sm:text-[11px]"
+        >
+          By Animal Welfare League NSW
+        </a>
       </div>
 
-      <div className="mt-5 hidden border-t border-black lg:block" />
+      <div className={`mt-5 hidden border-black lg:block ${newspaper ? "border-t-4 border-double" : "border-t"}`} />
 
       <div ref={menuRef} className="relative mt-5 py-2 lg:hidden">
         <button
@@ -236,9 +267,7 @@ export default function SiteHeader({
           aria-hidden={!menuOpen}
           inert={!menuOpen}
           className={`section-dropdown absolute inset-x-0 top-full z-20 mt-2 flex max-h-[70dvh] flex-col gap-1.5 overflow-y-auto overscroll-contain rounded-[19px] border border-black bg-white py-2.5 ${
-            menuOpen
-              ? "section-dropdown-open visible opacity-100"
-              : "invisible pointer-events-none opacity-0"
+            menuOpen ? "section-dropdown-open visible opacity-100" : "invisible pointer-events-none opacity-0"
           }`}
         >
           {FILTERS.map((item, index) => {
@@ -292,34 +321,93 @@ export default function SiteHeader({
         </ul>
       </div>
 
-      <nav
-        aria-label="Filter stories by category"
-        className="hidden items-center justify-center gap-3 py-2 text-[13px] font-medium text-black lg:flex"
-      >
-        {FILTERS.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            onClick={() => onSelectCategory?.(item.value)}
-            aria-pressed={activeCategory === item.value}
-            className={`shrink-0 rounded-full px-3 py-1 transition ${
-              activeCategory === item.value
-                ? "bg-black text-white"
-                : "text-black hover:bg-neutral-100"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-        <a
-          href={AWL_NSW_ADOPT_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 rounded-full px-3 py-1 text-black transition hover:bg-neutral-100"
+      {newspaper ? (
+        <nav
+          aria-label="Filter stories by category"
+          className="hidden grid-cols-[1fr_auto_1fr] items-center py-5 lg:grid"
         >
-          Adopt
-        </a>
-      </nav>
+          <div />
+          <div className="flex items-center divide-x divide-neutral-300">
+            {FILTERS.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => onSelectCategory?.(item.value)}
+                aria-pressed={activeCategory === item.value}
+                className={`shrink-0 px-4 text-[11px] font-bold uppercase tracking-[0.14em] transition-colors ${
+                  activeCategory === item.value ? "text-red-600" : "text-black hover:text-red-600"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <a
+            href={AWL_NSW_ADOPT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="justify-self-end text-[11px] font-bold uppercase tracking-[0.14em] text-red-600 hover:underline"
+          >
+            Adopt ›
+          </a>
+        </nav>
+      ) : bbc ? (
+        <nav
+          aria-label="Filter stories by category"
+          className="hidden items-stretch justify-center gap-7 text-sm font-semibold text-black lg:flex"
+        >
+          {FILTERS.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => onSelectCategory?.(item.value)}
+              aria-pressed={activeCategory === item.value}
+              className={`shrink-0 border-b-[3px] pb-2 pt-3 transition-colors ${
+                activeCategory === item.value
+                  ? "border-red-600 text-black"
+                  : "border-transparent text-neutral-700 hover:border-black hover:text-black"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+          <a
+            href={AWL_NSW_ADOPT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 border-b-[3px] border-transparent pb-2 pt-3 text-red-600 transition-colors hover:border-red-600"
+          >
+            Adopt ›
+          </a>
+        </nav>
+      ) : (
+        <nav
+          aria-label="Filter stories by category"
+          className="hidden items-center justify-center gap-3 py-2 text-[13px] font-medium text-black lg:flex"
+        >
+          {FILTERS.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => onSelectCategory?.(item.value)}
+              aria-pressed={activeCategory === item.value}
+              className={`shrink-0 rounded-full px-3 py-1 transition ${
+                activeCategory === item.value ? "bg-black text-white" : "text-black hover:bg-neutral-100"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+          <a
+            href={AWL_NSW_ADOPT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-full px-3 py-1 text-black transition hover:bg-neutral-100"
+          >
+            Adopt
+          </a>
+        </nav>
+      )}
 
       <div className="hidden border-t border-black lg:block" />
     </header>

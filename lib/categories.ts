@@ -11,6 +11,34 @@ export const CATEGORIES = ["News", "Sports", "Politics", "Business", "Culture"] 
 
 export type Category = (typeof CATEGORIES)[number];
 
+/** Sections each topic tab is broken into on Design 2. */
+export const SUBCATEGORIES: Record<Category, readonly string[]> = {
+  News: ["Australia", "US", "World"],
+  Sports: ["Football", "F1", "Tennis", "Cricket", "Rugby", "NFL", "Other Sports"],
+  Politics: ["Trump", "US", "Australia", "World"],
+  Business: ["AI", "Tech", "Retail", "Workplace"],
+  Culture: ["Music", "Film and TV", "Celebrity", "Royals", "Art"],
+};
+
+export function isCategory(value: string | null | undefined): value is Category {
+  return Boolean(value) && (CATEGORIES as readonly string[]).includes(value as string);
+}
+
+/** Older tags folded into a current SUBCATEGORIES value. */
+const SUBCATEGORY_ALIASES: Partial<Record<Category, Record<string, string>>> = {
+  Sports: { Soccer: "Football" },
+};
+
+/** Keeps a sub-topic only if it belongs to the given category. */
+export function normalizeSubcategory(
+  category: string | null | undefined,
+  subcategory: string | null | undefined,
+): string | null {
+  if (!subcategory || !isCategory(category)) return null;
+  const mapped = SUBCATEGORY_ALIASES[category]?.[subcategory] ?? subcategory;
+  return SUBCATEGORIES[category].includes(mapped) ? mapped : null;
+}
+
 /** Older tags folded into a current CATEGORIES value. */
 const CATEGORY_ALIASES: Record<string, Category> = {
   Art: "Culture",

@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
 import type { Episode } from "@/types/episode";
+import { useInPlaceAudio } from "@/lib/useInPlaceAudio";
 import StoryCard from "@/components/StoryCard";
 
 /**
@@ -9,48 +9,31 @@ import StoryCard from "@/components/StoryCard";
  * layouts stay one column so the list just scrolls. Clicking a card
  * plays that script in place — it never becomes the hero.
  */
-export default function AllStoriesGrid({ episodes }: { episodes: Episode[] }) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  function togglePlay(id: string) {
-    const episode = episodes.find((item) => item.id === id);
-    const audioEl = audioRef.current;
-    if (!episode || !audioEl) return;
-
-    if (activeId === id) {
-      if (audioEl.paused) void audioEl.play().catch(() => {});
-      else audioEl.pause();
-      return;
-    }
-
-    audioEl.pause();
-    audioEl.src = episode.audioUrl;
-    setActiveId(id);
-    void audioEl.play().catch(() => {});
-  }
+export default function AllStoriesGrid({
+  episodes,
+  fullColour = false,
+}: {
+  episodes: Episode[];
+  fullColour?: boolean;
+}) {
+  const { togglePlay, currentTime, duration, isPlayingId, isActiveId, audioProps } = useInPlaceAudio(episodes);
 
   return (
     <>
-      <audio
-        ref={audioRef}
-        preload="none"
-        className="hidden"
-        crossOrigin="anonymous"
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        onEnded={() => setIsPlaying(false)}
-      />
+      <audio {...audioProps} />
       <div className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-3">
         {episodes.map((episode, index) => (
           <StoryCard
             key={episode.id}
             episode={episode}
             playInPlace
-            isPlaying={activeId === episode.id && isPlaying}
+            isPlaying={isPlayingId(episode.id)}
+            isActive={isActiveId(episode.id)}
+            currentTime={currentTime}
+            duration={duration}
+            fullColour={fullColour}
             introDelayMs={Math.min(index, 8) * 60}
-            onSelect={togglePlay}
+            onSelect={(id) => togglePlay(id)}
           />
         ))}
       </div>

@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import { DESIGN_COOKIE, parseDesign } from "@/lib/design";
+import { IMAGERY_COOKIE, parseImagery } from "@/lib/imagery";
 import { ADMIN_SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 import { listEpisodes } from "@/lib/episodes";
 import AdminLoginForm from "@/components/AdminLoginForm";
@@ -24,12 +26,15 @@ export default async function AdminPage() {
     loadError = error instanceof Error ? error.message : "Failed to load episodes.";
   }
 
+  const activeDesign = parseDesign(cookieStore.get(DESIGN_COOKIE)?.value);
+  const activeImagery = parseImagery(cookieStore.get(IMAGERY_COOKIE)?.value);
+
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
       {loadError ? (
         <p className="border border-white p-4 text-sm text-white">{loadError}</p>
       ) : (
-        <AdminDashboard initialEpisodes={episodes} />
+        <AdminDashboard initialEpisodes={episodes} activeDesign={activeDesign} activeImagery={activeImagery} />
       )}
     </main>
   );

@@ -3,6 +3,9 @@
 import { useState } from "react";
 import type { Episode } from "@/types/episode";
 import { formatEpisodeDate, isScheduledDraft } from "@/lib/format";
+import { STORY_LEVEL_LABELS } from "@/lib/levels";
+import { GENERATED_IMAGE_LABELS, GENERATED_IMAGE_STYLES, hasGeneratedImage } from "@/lib/imagery";
+import AdminBulkImageGenerator from "@/components/AdminBulkImageGenerator";
 import AdminEpisodeEditor from "@/components/AdminEpisodeEditor";
 import AdminPublishSwitch from "@/components/AdminPublishSwitch";
 import { adminGhostPillClass, adminMutedClass } from "@/components/admin-ui";
@@ -49,6 +52,9 @@ export default function AdminEpisodeList({
       formData.set("sourceUrl", episode.sourceUrl ?? "");
       formData.set("headline", episode.headline ?? "");
       formData.set("category", episode.category ?? "");
+      formData.set("subcategory", episode.subcategory ?? "");
+      formData.set("summary", episode.summary ?? "");
+      formData.set("level", episode.level);
       if (episode.photoUrl) formData.set("photoImageUrl", episode.photoUrl);
       formData.set("published", published ? "true" : "false");
 
@@ -75,6 +81,8 @@ export default function AdminEpisodeList({
       </p>
 
       {error ? <p className="mt-3 text-sm text-white">{error}</p> : null}
+
+      <AdminBulkImageGenerator episodes={episodes} onUpdated={onUpdated} />
 
       {episodes.length === 0 ? (
         <p className="mt-4 text-sm text-white/60">No episodes yet — upload the first one above.</p>
@@ -113,9 +121,19 @@ export default function AdminEpisodeList({
                       )}
                     </p>
                     <p className="mt-1 text-xl font-bold leading-[1.15] text-white">{headline}</p>
+                    {episode.summary ? (
+                      <p className="mt-1 text-sm leading-snug text-white/80">{episode.summary}</p>
+                    ) : null}
                     <p className={`mt-1 ${adminMutedClass}`}>
                       {episode.scriptName}
                       {episode.category ? ` · ${episode.category}` : ""}
+                      {episode.subcategory ? ` · ${episode.subcategory}` : ""}
+                      {` · ${STORY_LEVEL_LABELS[episode.level]}`}
+                    </p>
+                    <p className={`mt-1 ${adminMutedClass}`}>
+                      {GENERATED_IMAGE_STYLES.map(
+                        (style) => `${GENERATED_IMAGE_LABELS[style]} ${hasGeneratedImage(episode, style) ? "✓" : "–"}`,
+                      ).join(" · ")}
                     </p>
                     {episode.sourceUrl ? (
                       <a
@@ -166,6 +184,7 @@ export default function AdminEpisodeList({
                       onUpdated(updated);
                       setEditingId(null);
                     }}
+                    onImagesUpdated={onUpdated}
                     onCancel={() => setEditingId(null)}
                   />
                 ) : null}

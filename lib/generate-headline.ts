@@ -1,44 +1,44 @@
 const OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions";
 const DEFAULT_MODEL = "gpt-4o-mini";
 
-const SYSTEM_PROMPT = `You write one-line joke headlines for "The Dog Daily", a campaign that turns real news
-headlines about bad human behaviour into short, standalone punchlines about dogs — implying dogs would
-never behave this way, or don't need to. Given a real news headline, respond with ONE short line in the
-voice "Dogs would never...", "Dogs never...", or "Dogs don't...".
+const SYSTEM_PROMPT = `You write one-line news headlines for "The Dog Daily", a BBC-style homepage of real stories.
+
+Given a real news headline, rewrite it as ONE short, intriguing headline that still reports the actual news.
 
 Rules:
 - Output only the headline itself. No quotes, no explanation, no trailing period.
-- Keep it under 90 characters.
-- It must read as a standalone joke/punchline, not a summary of the real story — do not name real people,
-  companies, or specific details from the source headline.
-- Keep it light and cheeky, never mean-spirited toward real victims of the news story.`;
+- Keep it between 40 and 80 characters.
+- Use the actual news: names, facts, and the hook of the story. Do not invent details.
+- Add a little creative flourish so it isn't a dry wire rewrite — punchy, specific, intriguing.
+- Never use "Dogs would never...", "Dogs never...", "Dogs don't...", or any punchline about dogs.
+- Don't moralise. Don't add "unlike dogs".`;
 
-const FEW_SHOT_EXAMPLES: Array<{ real: string; joke: string }> = [
+const FEW_SHOT_EXAMPLES: Array<{ real: string; rewritten: string }> = [
   {
     real: "Rivals Altman and Musk rally behind Amodei's call for an AI slowdown",
-    joke: "Dogs never rush to release something they can't take back",
+    rewritten: "Altman and Musk back a slowdown. They still hold the keys.",
   },
   {
     real: "Man accused of mid-air racist outburst loses job over duct-tape flight incident",
-    joke: "Dogs would never get duct-taped to their seat mid-flight after a racist outburst",
+    rewritten: "Racist outburst mid-flight. Then they duct-taped him down.",
   },
   {
-    real: "Sydney Sweeney's nude sports ad is a slam dunk for sexism",
-    joke: "Dogs never need to undress to sell something",
+    real: "Sydney Sweeney under fire for ‘sexualising women’s sport’ in sports prediction ad",
+    rewritten: "Sydney Sweeney accused of sexualising women's sport",
   },
   {
-    real: "Prince Harry and Meghan Markle's UK move: King Charles clarifies their status",
-    joke: "Dogs don't need their family status clarified",
+    real: "Prince Harry, Meghan Markle to remain 'non-working royals' in UK, King Charles III confirms",
+    rewritten: "King Charles: Harry and Meghan stay non-working royals",
   },
   {
-    real: "Trump: 'Lake America,' Ontario",
-    joke: "Dogs mark their territory and move on",
+    real: "Trump the renamer-in-chief keen to leave his mark – or his stain – on world",
+    rewritten: "Trump wants to rename the neighbour's lake",
   },
 ];
 
 /**
- * Asks an LLM to rewrite a real news headline as a short "Dogs would never..." style
- * joke punchline in the campaign's voice (see SYSTEM_PROMPT / FEW_SHOT_EXAMPLES above).
+ * Asks an LLM to tighten a real news headline into a short, intriguing
+ * homepage line (see SYSTEM_PROMPT / FEW_SHOT_EXAMPLES above).
  * Requires OPENAI_API_KEY; throws if it's missing or the request fails so callers can
  * fall back to the real headline instead of silently returning garbage.
  */
@@ -54,7 +54,7 @@ export async function generateJokeHeadline(realHeadline: string): Promise<string
     { role: "system", content: SYSTEM_PROMPT },
     ...FEW_SHOT_EXAMPLES.flatMap((example) => [
       { role: "user" as const, content: example.real },
-      { role: "assistant" as const, content: example.joke },
+      { role: "assistant" as const, content: example.rewritten },
     ]),
     { role: "user" as const, content: realHeadline },
   ];
@@ -68,7 +68,7 @@ export async function generateJokeHeadline(realHeadline: string): Promise<string
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
       messages,
-      temperature: 0.9,
+      temperature: 0.7,
       max_tokens: 60,
     }),
   });
@@ -79,8 +79,8 @@ export async function generateJokeHeadline(realHeadline: string): Promise<string
   }
 
   const body = await response.json();
-  const joke: string | undefined = body?.choices?.[0]?.message?.content;
-  const cleaned = joke?.trim().replace(/^["']|["']$/g, "");
+  const line: string | undefined = body?.choices?.[0]?.message?.content;
+  const cleaned = line?.trim().replace(/^["']|["']$/g, "");
 
   if (!cleaned) {
     throw new Error("Headline generation returned an empty response.");
